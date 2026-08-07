@@ -68,24 +68,25 @@ gh pr create --base main --title "…" --body "…"
 
 Devolva a URL do PR ao usuario.
 
-## 5. Gate obrigatorio: CI 100% verde
+## 5. Gate obrigatorio: unica fonte de verdade do CI
 
-Workflow unico: **CI** (`.github/workflows/ci.yml`) — jobs paralelos + job **Gate**.
+Workflow unico: **CI** (`.github/workflows/ci.yml`).
 
-**Nao considere a tarefa finalizada** ate o run **CI** estar verde (job Gate success).
+**Veredito = job Gate.** Nao use SonarCloud, bots ou jobs paralelos isolados como criterio de “passou”.
 
-1. Acompanhe com `gh run watch` / `gh pr checks` (um unico workflow).
-2. Se **qualquer** job falhar (Gate vermelho):
-   - diagnostique o log (`gh run view <id> --log-failed`)
-   - corrija **apenas codigo/config** necessario
-   - commit + push de correcao
-   - **nao** rode `version:bump`
-   - **nao** altere `CHANGELOG.md`
-   - **nao** mude tag/release por causa do hotfix de CI
-   - repita ate o Gate passar
-3. So depois do Gate verde encerre a tarefa e informe o resultado ao usuario.
+- Gate `success` → pode encerrar a tarefa
+- Gate vermelho / ainda rodando → tarefa **nao** finalizada
 
-Correcoes de CI sao commits `fix(ci): …` / `chore(ci): …` / `style: …` conforme o caso.
+1. Acompanhe o run **CI** ate o **Gate** (`gh run watch` / `gh run view … --jq` no job Gate).
+2. Se o Gate falhar:
+   - diagnostique (`gh run view <id> --log-failed`)
+   - corrija **apenas codigo/config**
+   - commit + push
+   - **nao** `version:bump` / **nao** CHANGELOG / **nao** tag por hotfix de CI
+   - repita ate Gate verde
+3. Job novo na esteira: ver regra `ci-gate.mdc` — obrigatorio entrar em `gate.needs` + check de `result`.
+
+Correcoes: `fix(ci):` / `chore(ci):` / `style:`.
 
 ## 6. Nao fazer
 
@@ -93,5 +94,6 @@ Correcoes de CI sao commits `fix(ci): …` / `chore(ci): …` / `style: …` con
 - Bump X “por precaução”
 - Push/PR se nao ha mudancas reais
 - Pular `npm run pr` / format / lint / test locais antes do push
-- Declarar concluido com CI vermelho ou ainda rodando
+- Declarar concluido sem Gate `success` (ou com CI ainda rodando)
 - Bump ou CHANGELOG em loops de correcao de CI
+- Adicionar job/esteira que nao passa pelo Gate (`needs` + check de result)

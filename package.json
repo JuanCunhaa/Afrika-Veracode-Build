@@ -1,6 +1,6 @@
 {
   "name": "afrika-veracode-build",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "GitHub Action para discovery, build, packaging e validação de artifacts Veracode-ready",
   "private": true,
   "license": "UNLICENSED",
