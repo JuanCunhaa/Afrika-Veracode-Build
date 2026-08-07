@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 99,
+  "repository": "org/app",
+  "discovery": {},
+  "builder": {},
+  "fingerprint": {
+    "value": "x"
+  }
+}

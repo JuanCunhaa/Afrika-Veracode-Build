@@ -1,13 +1,17 @@
 'use strict';
 
 const { setOutputs, envStr } = require('../utils/common/io');
-const { fail, ERROR_CODES } = require('../utils/errors/errors');
+const { fail, ERROR_CODES, logCaughtError } = require('../utils/errors/errors');
+const { registerSecretsFromEnv } = require('../utils/sanitize/sanitize');
 
 const CONFIG_MODES = new Set(['auto', 'refresh', 'readonly', 'disabled']);
 const DOCTOR_MODES = new Set(['standard', 'strict']);
 const JAVA_MODES = new Set(['auto', 'compiled', 'source']);
 
 function main() {
+  // Zero-leak: registrar secrets do ambiente o mais cedo possivel
+  registerSecretsFromEnv();
+
   const configMode = envStr('CONFIG_MODE', 'auto').toLowerCase();
   const doctorMode = envStr('DOCTOR_MODE', 'standard').toLowerCase();
   const javaMode = envStr('JAVA_PACKAGE_MODE', 'compiled').toLowerCase();
@@ -35,7 +39,6 @@ function main() {
       envStr('CONFIG_GITHUB_APP_INSTALLATION_ID');
     const hasPat = Boolean(envStr('CONFIG_GITHUB_TOKEN'));
     const org = envStr('CONFIG_ORG');
-    // Auth so e obrigatoria se houver intencao de usar config remoto com org
     if (org && !hasApp && !hasPat) {
       fail(ERROR_CODES.CONFIG_AUTH_FAILED, 'config_org informado sem credenciais de GitHub App ou PAT.', {
         stage: 'Validate Inputs',
@@ -63,7 +66,7 @@ if (require.main === module) {
   try {
     main();
   } catch (err) {
-    console.error(`::error::${err.message || err}`);
+    logCaughtError(err);
     process.exit(1);
   }
 }

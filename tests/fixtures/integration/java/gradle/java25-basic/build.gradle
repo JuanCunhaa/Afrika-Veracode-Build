@@ -1,0 +1,13 @@
+plugins {
+  id 'java'
+}
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_25
+  targetCompatibility = JavaVersion.VERSION_25
+}
+
+tasks.withType(JavaCompile).configureEach {
+  options.debug = true
+  options.debugOptions.debugLevel = 'source,lines,vars'
+}

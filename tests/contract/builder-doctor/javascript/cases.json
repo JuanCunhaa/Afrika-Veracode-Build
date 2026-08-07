@@ -1,0 +1,86 @@
+[
+  {
+    "id": "vanilla-node",
+    "source": "tests/fixtures/integration/javascript/vanilla-node",
+    "expectLanguage": "javascript",
+    "expectBuildSystem": "npm",
+    "expectStrategy": "SOURCE_PACKAGE",
+    "builder": "javascript",
+    "expectZipEntries": ["package.json"],
+    "forbidZipEntries": ["node_modules/"],
+    "requirePackageJson": true,
+    "lockfileName": "package-lock.json",
+    "requireLockfileWhenPresent": true,
+    "goldenDir": "tests/artifacts/javascript"
+  },
+  {
+    "id": "express",
+    "source": "tests/fixtures/integration/javascript/express",
+    "expectLanguage": "javascript",
+    "expectBuildSystem": "npm",
+    "expectStrategy": "SOURCE_PACKAGE",
+    "builder": "javascript",
+    "expectZipEntries": ["package.json"],
+    "forbidZipEntries": ["node_modules/"],
+    "requirePackageJson": true
+  },
+  {
+    "id": "react",
+    "source": "tests/fixtures/integration/javascript/react",
+    "expectLanguage": "javascript",
+    "expectBuildSystem": "npm",
+    "expectStrategy": "SOURCE_PACKAGE",
+    "builder": "javascript",
+    "expectZipEntries": ["package.json"],
+    "forbidZipEntries": ["node_modules/"],
+    "requirePackageJson": true
+  },
+  {
+    "id": "nextjs",
+    "source": "tests/fixtures/integration/javascript/nextjs",
+    "expectLanguage": "javascript",
+    "expectBuildSystem": "npm",
+    "expectStrategy": "SOURCE_PACKAGE",
+    "builder": "javascript",
+    "expectZipEntries": ["package.json"],
+    "forbidZipEntries": ["node_modules/"],
+    "requirePackageJson": true
+  },
+  {
+    "id": "angular",
+    "source": "tests/fixtures/integration/javascript/angular",
+    "expectLanguage": "javascript",
+    "expectBuildSystem": "npm",
+    "expectStrategy": "SOURCE_PACKAGE",
+    "builder": "javascript",
+    "expectZipEntries": ["package.json"],
+    "forbidZipEntries": ["node_modules/"],
+    "requirePackageJson": true
+  },
+  {
+    "id": "nestjs-yarn",
+    "source": "tests/fixtures/integration/javascript/nestjs-yarn",
+    "expectLanguage": "javascript",
+    "expectBuildSystem": "yarn",
+    "expectStrategy": "SOURCE_PACKAGE",
+    "builder": "javascript",
+    "expectZipEntries": ["package.json"],
+    "forbidZipEntries": ["node_modules/"],
+    "requirePackageJson": true,
+    "lockfileName": "yarn.lock",
+    "requireLockfileWhenPresent": true
+  },
+  {
+    "id": "vue-pnpm",
+    "source": "tests/fixtures/integration/javascript/vue-pnpm",
+    "expectLanguage": "javascript",
+    "expectBuildSystem": "pnpm",
+    "expectStrategy": "SOURCE_PACKAGE",
+    "builder": "javascript",
+    "expectZipEntries": ["package.json"],
+    "forbidZipEntries": ["node_modules/"],
+    "requirePackageJson": true,
+    "lockfileName": "pnpm-lock.yaml",
+    "requireLockfileWhenPresent": true
+  }
+]

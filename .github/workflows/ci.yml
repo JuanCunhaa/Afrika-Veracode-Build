@@ -4,173 +4,556 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    # Full Compatibility Matrix — weekly Monday 06:00 UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      matrix_profile:
+        description: 'pr (Gate fast) | full (all versions) | release (PR+Full+tag path)'
+        type: choice
+        options: [pr, full, release]
+        default: pr
 
 permissions:
   contents: read
 
 jobs:
+  resolve:
+    name: Resolve matrix
+    runs-on: ubuntu-latest
+    outputs:
+      profile: ${{ steps.r.outputs.profile }}
+      fail_fast: ${{ steps.r.outputs.fail_fast }}
+      run_release: ${{ steps.r.outputs.run_release }}
+      java_maven: ${{ steps.r.outputs.java_maven }}
+      java_gradle: ${{ steps.r.outputs.java_gradle }}
+      javascript: ${{ steps.r.outputs.javascript }}
+      typescript: ${{ steps.r.outputs.typescript }}
+      dotnet_modern: ${{ steps.r.outputs.dotnet_modern }}
+      dotnet_framework: ${{ steps.r.outputs.dotnet_framework }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+      - name: Resolve profile + matrices from tests/test-matrix.json
+        id: r
+        env:
+          MATRIX_PROFILE: ${{ github.event_name == 'schedule' && 'full' || (github.event_name == 'workflow_dispatch' && github.event.inputs.matrix_profile) || 'pr' }}
+        run: |
+          set -euo pipefail
+          echo "MATRIX_PROFILE=${MATRIX_PROFILE}"
+          node scripts/resolve-test-matrix.js
+
   quality:
     name: Quality
+    needs: [resolve]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Setup Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
           cache: npm
-
       - name: Install
         run: npm ci
-
-      - name: ESLint
-        run: npm run lint
-
-      - name: Prettier
-        run: npm run format:check
-
-      - name: Unit tests
-        run: npm test
-
-      - name: Action SHA pinning
-        run: npm run pr
-
-      - name: actionlint
+      - name: ESLint + Prettier + actionlint + yamllint
+        id: q
         run: |
           set -euo pipefail
+          START=$(date +%s)
+          npm run lint
+          npm run format:check
           VERSION=1.7.7
           curl -fsSL "https://github.com/rhysd/actionlint/releases/download/v${VERSION}/actionlint_${VERSION}_linux_amd64.tar.gz" -o /tmp/actionlint.tgz
           echo "023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757  /tmp/actionlint.tgz" | sha256sum -c -
           tar -xzf /tmp/actionlint.tgz -C /tmp actionlint
           /tmp/actionlint -color
-
-      - name: yamllint
-        run: |
-          set -euo pipefail
           pip install yamllint==1.37.1
           yamllint -d "{extends: relaxed, rules: {line-length: {max: 200}}}" action.yml internal .github/workflows
+          END=$(date +%s)
+          node scripts/ci-job-report.js --tech Quality --version - --scenario lint/format --result PASS --seconds $((END-START)) --job quality
 
-  js-source:
-    name: Integration / JS
+  unit:
+    name: Unit
+    needs: [resolve]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
-      - name: Discovery + JS package + Doctor
+          cache: npm
+      - run: npm ci
+      - name: Unit tests + coverage
         run: |
           set -euo pipefail
-          mkdir -p .veracode-build
-          export SOURCE=tests/fixtures/javascript
-          export PROJECT_PATH=.
-          export OUTPUT_DIR=.veracode-build
-          export LANGUAGE=javascript
-          export CONFIG_MODE=disabled
-          node internal/discovery/index.js
-          export BUILD_PLAN_PATH=.veracode-build/build-plan.json
-          export ARTIFACT_NAME=analysisPack.zip
-          node internal/builder/javascript/index.js
-          export ARTIFACT_PATH=.veracode-build/analysisPack.zip
-          export DOCTOR_MODE=standard
-          node internal/doctor/index.js
+          START=$(date +%s)
+          npm run test:unit
+          node scripts/run-unit-tests.js --coverage --root tests/unit
+          END=$(date +%s)
+          node scripts/ci-job-report.js --tech Unit --version - --scenario unit+coverage --result PASS --seconds $((END-START)) --job unit
+
+  negative:
+    name: Negative
+    needs: [resolve]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Negative / failure tests
+        run: |
+          set -euo pipefail
+          START=$(date +%s)
+          npm run test:negative
+          END=$(date +%s)
+          node scripts/ci-job-report.js --tech Negative --version - --scenario failure-codes --result PASS --seconds $((END-START)) --job negative
+
+  security:
+    name: Security
+    needs: [resolve]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Action SHA pinning
+        run: |
+          set -euo pipefail
+          START=$(date +%s)
+          npm run pr
+          END=$(date +%s)
+          node scripts/ci-job-report.js --tech Security --version - --scenario action-pinning --result PASS --seconds $((END-START)) --job security
+
+  secret-leak:
+    name: Secret leak
+    needs: [resolve]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Secret zero-leak suite
+        run: |
+          set -euo pipefail
+          START=$(date +%s)
+          npm run test:secret-leak
+          END=$(date +%s)
+          node scripts/ci-job-report.js --tech Security --version - --scenario secret-zero-leak --result PASS --seconds $((END-START)) --job secret-leak
+
+  feature-completeness:
+    name: Feature completeness
+    needs: [resolve]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Feature Completeness Contract
+        run: |
+          set -euo pipefail
+          START=$(date +%s)
+          npm run check:completeness
+          END=$(date +%s)
+          node scripts/ci-job-report.js --tech Policy --version - --scenario feature-completeness --result PASS --seconds $((END-START)) --job feature-completeness
 
   java-maven:
-    name: Integration / Java Maven
+    name: Builder-Doctor / Java Maven (${{ matrix.case }})
+    needs: [resolve]
+    if: needs.resolve.outputs.java_maven != ''
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental == true || matrix.experimental == 'true' }}
+    strategy:
+      fail-fast: ${{ needs.resolve.outputs.fail_fast == 'true' }}
+      matrix:
+        include: ${{ fromJson(needs.resolve.outputs.java_maven) }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Skip sentinel
+        if: matrix.case == '_skip'
+        run: echo "No Java Maven cases for this profile."
       - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        if: matrix.case != '_skip'
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: ${{ matrix.java }}
+          cache: maven
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: matrix.case != '_skip'
         with:
           node-version: '20'
-      - name: Maven build packaging
+      - name: Builder → Doctor contract
+        if: matrix.case != '_skip'
         run: |
           set -euo pipefail
-          mkdir -p .veracode-build
-          export SOURCE=tests/fixtures/java-maven
-          export OUTPUT_DIR=.veracode-build
-          node internal/discovery/index.js
-          export BUILD_PLAN_PATH=.veracode-build/build-plan.json
-          export RESTORE_DEPENDENCIES=true
-          export RUN_TESTS=false
-          node internal/builder/java-maven/index.js
-          export ARTIFACT_PATH=.veracode-build/analysisPack.zip
-          node internal/doctor/index.js
+          START=$(date +%s)
+          set +e
+          node scripts/run-builder-doctor-contract.js --family java-maven --case "${{ matrix.case }}"
+          RC=$?
+          set -e
+          END=$(date +%s)
+          RESULT=PASS
+          if [ "$RC" -ne 0 ]; then RESULT=FAIL; fi
+          node scripts/ci-job-report.js \
+            --tech "${{ matrix.tech }}" \
+            --version "${{ matrix.version }}" \
+            --scenario "${{ matrix.scenario }}" \
+            --result "$RESULT" \
+            --seconds $((END-START)) \
+            --job java-maven
+          exit "$RC"
 
-  dotnet-modern:
-    name: Integration / .NET
+  java-gradle:
+    name: Builder-Doctor / Java Gradle (${{ matrix.case }})
+    needs: [resolve]
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental == true || matrix.experimental == 'true' }}
+    strategy:
+      fail-fast: ${{ needs.resolve.outputs.fail_fast == 'true' }}
+      matrix:
+        include: ${{ fromJson(needs.resolve.outputs.java_gradle) }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Skip sentinel
+        if: matrix.case == '_skip'
+        run: echo "No Java Gradle cases for this profile."
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        if: matrix.case != '_skip'
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+      - uses: gradle/actions/setup-gradle@0bdd871935719febd78681f197cd39af5b6e16a6 # v4.2.2
+        if: matrix.case != '_skip'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: matrix.case != '_skip'
+        with:
+          node-version: '20'
+      - name: Builder → Doctor contract
+        if: matrix.case != '_skip'
+        env:
+          USE_WRAPPER: 'false'
+        run: |
+          set -euo pipefail
+          START=$(date +%s)
+          set +e
+          node scripts/run-builder-doctor-contract.js --family java-gradle --case "${{ matrix.case }}"
+          RC=$?
+          set -e
+          END=$(date +%s)
+          RESULT=PASS
+          if [ "$RC" -ne 0 ]; then RESULT=FAIL; fi
+          node scripts/ci-job-report.js \
+            --tech "${{ matrix.tech }}" \
+            --version "${{ matrix.version }}" \
+            --scenario "${{ matrix.scenario }}" \
+            --result "$RESULT" \
+            --seconds $((END-START)) \
+            --job java-gradle
+          exit "$RC"
+
+  javascript:
+    name: Builder-Doctor / JS (${{ matrix.case }})
+    needs: [resolve]
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental == true || matrix.experimental == 'true' }}
+    strategy:
+      fail-fast: ${{ needs.resolve.outputs.fail_fast == 'true' }}
+      matrix:
+        include: ${{ fromJson(needs.resolve.outputs.javascript) }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Skip sentinel
+        if: matrix.case == '_skip'
+        run: echo "No JS cases for this profile."
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: matrix.case != '_skip'
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - name: Builder → Doctor contract
+        if: matrix.case != '_skip'
+        run: |
+          set -euo pipefail
+          START=$(date +%s)
+          set +e
+          node scripts/run-builder-doctor-contract.js --family javascript --case "${{ matrix.case }}"
+          RC=$?
+          set -e
+          END=$(date +%s)
+          RESULT=PASS
+          if [ "$RC" -ne 0 ]; then RESULT=FAIL; fi
+          node scripts/ci-job-report.js \
+            --tech "${{ matrix.tech }}" \
+            --version "${{ matrix.version }}" \
+            --scenario "${{ matrix.scenario }}" \
+            --result "$RESULT" \
+            --seconds $((END-START)) \
+            --job javascript
+          exit "$RC"
+
+  typescript:
+    name: Builder-Doctor / TS (${{ matrix.case }})
+    needs: [resolve]
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental == true || matrix.experimental == 'true' }}
+    strategy:
+      fail-fast: ${{ needs.resolve.outputs.fail_fast == 'true' }}
+      matrix:
+        include: ${{ fromJson(needs.resolve.outputs.typescript) }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Skip sentinel
+        if: matrix.case == '_skip'
+        run: echo "No TS cases for this profile."
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: matrix.case != '_skip'
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - name: Builder → Doctor contract
+        if: matrix.case != '_skip'
+        run: |
+          set -euo pipefail
+          START=$(date +%s)
+          set +e
+          node scripts/run-builder-doctor-contract.js --family typescript --case "${{ matrix.case }}"
+          RC=$?
+          set -e
+          END=$(date +%s)
+          RESULT=PASS
+          if [ "$RC" -ne 0 ]; then RESULT=FAIL; fi
+          node scripts/ci-job-report.js \
+            --tech "${{ matrix.tech }}" \
+            --version "${{ matrix.version }}" \
+            --scenario "${{ matrix.scenario }}" \
+            --result "$RESULT" \
+            --seconds $((END-START)) \
+            --job typescript
+          exit "$RC"
+
+  dotnet-modern:
+    name: Builder-Doctor / .NET (${{ matrix.case }})
+    needs: [resolve]
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental == true || matrix.experimental == 'true' }}
+    strategy:
+      fail-fast: ${{ needs.resolve.outputs.fail_fast == 'true' }}
+      matrix:
+        include: ${{ fromJson(needs.resolve.outputs.dotnet_modern) }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Skip sentinel
+        if: matrix.case == '_skip'
+        run: echo "No .NET modern cases for this profile."
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        if: matrix.case != '_skip'
+        with:
+          dotnet-version: ${{ matrix.sdk }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: matrix.case != '_skip'
+        with:
+          node-version: '20'
+      - name: Builder → Doctor contract
+        if: matrix.case != '_skip'
+        run: |
+          set -euo pipefail
+          START=$(date +%s)
+          set +e
+          node scripts/run-builder-doctor-contract.js --family dotnet --case "${{ matrix.case }}"
+          RC=$?
+          set -e
+          END=$(date +%s)
+          RESULT=PASS
+          if [ "$RC" -ne 0 ]; then RESULT=FAIL; fi
+          node scripts/ci-job-report.js \
+            --tech "${{ matrix.tech }}" \
+            --version "${{ matrix.version }}" \
+            --scenario "${{ matrix.scenario }}" \
+            --result "$RESULT" \
+            --seconds $((END-START)) \
+            --job dotnet-modern
+          exit "$RC"
+
+  dotnet-framework:
+    name: Builder-Doctor / .NET Framework (${{ matrix.case }})
+    needs: [resolve]
+    runs-on: windows-latest
+    continue-on-error: ${{ matrix.experimental == true || matrix.experimental == 'true' }}
+    strategy:
+      fail-fast: ${{ needs.resolve.outputs.fail_fast == 'true' }}
+      matrix:
+        include: ${{ fromJson(needs.resolve.outputs.dotnet_framework) }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Skip sentinel
+        if: matrix.case == '_skip'
+        shell: bash
+        run: echo "No .NET Framework cases for this profile."
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        if: matrix.case != '_skip'
         with:
           dotnet-version: '8.0.x'
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: matrix.case != '_skip'
         with:
           node-version: '20'
-      - name: dotnet publish packaging
+      - name: Builder → Doctor contract
+        if: matrix.case != '_skip'
+        shell: bash
         run: |
           set -euo pipefail
-          mkdir -p .veracode-build
-          export SOURCE=tests/fixtures/dotnet-modern
-          export OUTPUT_DIR=.veracode-build
-          node internal/discovery/index.js
-          export BUILD_PLAN_PATH=.veracode-build/build-plan.json
-          node internal/builder/dotnet/index.js
-          export ARTIFACT_PATH=.veracode-build/analysisPack.zip
-          node internal/doctor/index.js
+          START=$(date +%s)
+          set +e
+          node scripts/run-builder-doctor-contract.js --family dotnet --case "${{ matrix.case }}"
+          RC=$?
+          set -e
+          END=$(date +%s)
+          RESULT=PASS
+          if [ "$RC" -ne 0 ]; then RESULT=FAIL; fi
+          node scripts/ci-job-report.js \
+            --tech "${{ matrix.tech }}" \
+            --version "${{ matrix.version }}" \
+            --scenario "${{ matrix.scenario }}" \
+            --result "$RESULT" \
+            --seconds $((END-START)) \
+            --job dotnet-framework
+          exit "$RC"
+
+  # Placeholder shard for future Veracode Real E2E (credentials/tenant required).
+  veracode-e2e:
+    name: Veracode Real E2E (prepared)
+    needs: [resolve]
+    if: needs.resolve.outputs.profile == 'release' && false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Enable when VERACODE_* secrets and tenant are available."
 
   gate:
     name: Gate
     # Fonte de verdade do CI. Todo job de check NOVO deve:
     # 1) entrar em needs abaixo
-    # 2) ter needs.<id>.result validado no step
+    # 2) ter needs.<id>.result validado no step (skipped ok)
     # Jobs pos-gate (ex.: release) usam needs: [gate] apenas.
     runs-on: ubuntu-latest
-    needs: [quality, js-source, java-maven, dotnet-modern]
+    needs:
+      [
+        resolve,
+        quality,
+        unit,
+        negative,
+        security,
+        secret-leak,
+        feature-completeness,
+        java-maven,
+        java-gradle,
+        javascript,
+        typescript,
+        dotnet-modern,
+        dotnet-framework
+      ]
     if: always()
     steps:
-      - name: Require all parallel jobs green
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+      - name: Require parallel jobs green (skipped allowed)
+        env:
+          PROFILE: ${{ needs.resolve.outputs.profile }}
         run: |
           set -euo pipefail
+          echo "profile=${PROFILE}"
           echo "quality=${{ needs.quality.result }}"
-          echo "js-source=${{ needs.js-source.result }}"
+          echo "unit=${{ needs.unit.result }}"
+          echo "negative=${{ needs.negative.result }}"
+          echo "security=${{ needs.security.result }}"
+          echo "secret-leak=${{ needs.secret-leak.result }}"
+          echo "feature-completeness=${{ needs.feature-completeness.result }}"
           echo "java-maven=${{ needs.java-maven.result }}"
+          echo "java-gradle=${{ needs.java-gradle.result }}"
+          echo "javascript=${{ needs.javascript.result }}"
+          echo "typescript=${{ needs.typescript.result }}"
           echo "dotnet-modern=${{ needs.dotnet-modern.result }}"
+          echo "dotnet-framework=${{ needs.dotnet-framework.result }}"
 
           failed=0
           for result in \
             "${{ needs.quality.result }}" \
-            "${{ needs.js-source.result }}" \
+            "${{ needs.unit.result }}" \
+            "${{ needs.negative.result }}" \
+            "${{ needs.security.result }}" \
+            "${{ needs.secret-leak.result }}" \
+            "${{ needs.feature-completeness.result }}" \
             "${{ needs.java-maven.result }}" \
-            "${{ needs.dotnet-modern.result }}"
+            "${{ needs.java-gradle.result }}" \
+            "${{ needs.javascript.result }}" \
+            "${{ needs.typescript.result }}" \
+            "${{ needs.dotnet-modern.result }}" \
+            "${{ needs.dotnet-framework.result }}"
           do
-            if [ "$result" != "success" ]; then
+            # success | skipped OK; failure | cancelled → Gate fail
+            # continue-on-error experimental still reports success at job level when only experimental cells fail
+            if [ "$result" != "success" ] && [ "$result" != "skipped" ]; then
               failed=1
             fi
           done
+
+          {
+            echo "## Gate"
+            echo ""
+            echo "Profile: \`${PROFILE}\`"
+            echo ""
+            echo "### Time report (job conclusions)"
+            echo ""
+            echo "| Job | Result |"
+            echo "| --- | --- |"
+            echo "| Quality | ${{ needs.quality.result }} |"
+            echo "| Unit | ${{ needs.unit.result }} |"
+            echo "| Negative | ${{ needs.negative.result }} |"
+            echo "| Security | ${{ needs.security.result }} |"
+            echo "| Secret leak | ${{ needs.secret-leak.result }} |"
+            echo "| Feature completeness | ${{ needs.feature-completeness.result }} |"
+            echo "| Java Maven | ${{ needs.java-maven.result }} |"
+            echo "| Java Gradle | ${{ needs.java-gradle.result }} |"
+            echo "| JavaScript | ${{ needs.javascript.result }} |"
+            echo "| TypeScript | ${{ needs.typescript.result }} |"
+            echo "| .NET modern | ${{ needs.dotnet-modern.result }} |"
+            echo "| .NET Framework | ${{ needs.dotnet-framework.result }} |"
+            echo ""
+            node scripts/resolve-test-matrix.js --profile "${PROFILE}" --print-support
+          } >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$failed" -ne 0 ]; then
             echo "::error::Gate falhou — um ou mais jobs paralelos nao passaram."
             exit 1
           fi
 
-          echo "Gate ok — todas as esteiras passaram."
+          echo "Gate ok — profile=${PROFILE}"
 
   release:
     name: Release
     runs-on: ubuntu-latest
-    needs: [gate]
+    needs: [gate, resolve]
     if: >
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
-      needs.gate.result == 'success'
+      needs.gate.result == 'success' &&
+      (
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'workflow_dispatch' && needs.resolve.outputs.profile == 'release')
+      )
     permissions:
       contents: write
     steps:
