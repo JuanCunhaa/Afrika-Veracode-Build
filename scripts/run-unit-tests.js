@@ -30,8 +30,12 @@ if (files.length === 0) {
 const coverage = process.argv.includes('--coverage');
 const args = [];
 if (coverage) {
+  // Node 20+: --experimental-test-coverage (include filter so existe a partir do Node 22+)
   args.push('--experimental-test-coverage');
-  args.push('--test-coverage-include=internal/**');
+  const major = Number(process.versions.node.split('.')[0]);
+  if (major >= 22) {
+    args.push('--test-coverage-include=internal/**');
+  }
 }
 args.push('--test', ...files);
 
