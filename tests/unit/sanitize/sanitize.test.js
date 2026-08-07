@@ -1,16 +1,24 @@
 'use strict';
 
-const { describe, it } = require('node:test');
+const { describe, it, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const {
   sanitizeLog,
+  sanitizeText,
+  sanitizeCommand,
   scrubSecretsFromObject,
   normalizeRequiredEnvVars,
   looksLikeSecretValue,
-  looksLikeSecretEnvName
+  looksLikeSecretEnvName,
+  registerSecret,
+  _resetRegisteredSecretsForTests,
+  REDACTED
 } = require('../../../internal/utils/sanitize/sanitize');
 
 describe('sanitize', () => {
+  beforeEach(() => _resetRegisteredSecretsForTests());
+  afterEach(() => _resetRegisteredSecretsForTests());
+
   it('remove chave SUPER_SECRET_TEST_839201 de objetos persistidos', () => {
     const cleaned = scrubSecretsFromObject({
       SUPER_SECRET_TEST_839201: 'value-must-not-persist',
@@ -21,10 +29,10 @@ describe('sanitize', () => {
   });
 
   it('mascara Bearer / ghp_ / private key em logs', () => {
-    assert.match(sanitizeLog('Authorization: Bearer abcdefghijklmnop.qrstuv'), /\[REDACTED\]/);
+    assert.ok(sanitizeLog('Authorization: Bearer abcdefghijklmnop.qrstuv').includes(REDACTED));
     assert.doesNotMatch(sanitizeLog('token=ghp_abcdefghijklmnopqrstuvwxyz0123456789'), /ghp_/);
     const pem = sanitizeLog('-----BEGIN RSA PRIVATE KEY-----\nABC\n-----END RSA PRIVATE KEY-----');
-    assert.match(pem, /\[REDACTED\]/);
+    assert.ok(pem.includes(REDACTED));
   });
 
   it('reconhece nomes secret-like (token, password, private key, auth)', () => {
@@ -37,7 +45,7 @@ describe('sanitize', () => {
 
   it('nao mascara conteudo inocente indevidamente', () => {
     const innocent = 'Use Authorization header documentation; Basic setup guide; password policy docs';
-    assert.equal(sanitizeLog(innocent), innocent);
+    assert.equal(sanitizeText(innocent), innocent);
     assert.equal(looksLikeSecretValue('NUGET_TOKEN'), false);
     assert.equal(looksLikeSecretValue('short'), false);
   });
@@ -50,5 +58,12 @@ describe('sanitize', () => {
   it('normaliza apenas nomes de env vars', () => {
     assert.deepEqual(normalizeRequiredEnvVars(['NUGET_TOKEN', 'NUGET_TOKEN']), ['NUGET_TOKEN']);
     assert.throws(() => normalizeRequiredEnvVars(['not a token value!!!']));
+  });
+
+  it('sanitizeCommand mascara --password e registerSecret', () => {
+    registerSecret('SUPER_SECRET_TEST_839201');
+    const line = sanitizeCommand('dotnet', ['nuget', 'add', 'source', 'u', '--password', 'SUPER_SECRET_TEST_839201']);
+    assert.doesNotMatch(line, /SUPER_SECRET_TEST_839201/);
+    assert.match(line, /--password \*\*\*/);
   });
 });

@@ -11,6 +11,7 @@ describe('utils', () => {
     assert.ok(ERROR_CODES.AMBIGUOUS_PROJECT);
     assert.ok(ERROR_CODES.NOT_IMPLEMENTED);
     assert.ok(ERROR_CODES.BUILDER_DOCTOR_CONTRACT_BROKEN);
+    assert.ok(ERROR_CODES.SECRET_LEAK_DETECTED);
   });
 
   it('classifyDependencyError reconhece auth/network', () => {
