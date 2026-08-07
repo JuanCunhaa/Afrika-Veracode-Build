@@ -10,6 +10,7 @@ describe('utils', () => {
     assert.ok(ERROR_CODES.UNSUPPORTED_LANGUAGE);
     assert.ok(ERROR_CODES.AMBIGUOUS_PROJECT);
     assert.ok(ERROR_CODES.NOT_IMPLEMENTED);
+    assert.ok(ERROR_CODES.BUILDER_DOCTOR_CONTRACT_BROKEN);
   });
 
   it('classifyDependencyError reconhece auth/network', () => {
