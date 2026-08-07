@@ -4,6 +4,17 @@ Todas as mudancas notaveis deste projeto serao documentadas neste arquivo.
 
 O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e este projeto adota [Versionamento Semantico](https://semver.org/lang/pt-BR/).
 
+## [0.1.3] - 2026-08-07
+
+### Added
+
+- Suíte unitária expandida em `tests/unit/` (Discovery, BuildPlan, Doctor, Fingerprint, Config, Sanitize, Utils) com fixtures em `tests/fixtures/unit/`.
+- Scripts `npm test` / `npm run test:coverage` via runner cross-platform e step de coverage no job Quality.
+
+### Changed
+
+- Detector Gradle reconhece `JavaLanguageVersion.of(N)` tambem em forma Kotlin DSL (`languageVersion.set`).
+
 ## [0.1.2] - 2026-08-07
 
 ### Changed
@@ -27,6 +38,7 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0
 - Build Config remoto atualizavel com fingerprint SHA-256 e GitHub App/PAT.
 - Inputs, outputs, codigos de erro padronizados e documentacao completa do MVP.
 
+[0.1.3]: https://github.com/JuanCunhaa/Afrika-Veracode-Build/releases/tag/v0.1.3
 [0.1.2]: https://github.com/JuanCunhaa/Afrika-Veracode-Build/releases/tag/v0.1.2
 [0.1.1]: https://github.com/JuanCunhaa/Afrika-Veracode-Build/releases/tag/v0.1.1
 [0.1.0]: https://github.com/JuanCunhaa/Afrika-Veracode-Build/releases/tag/v0.1.0
