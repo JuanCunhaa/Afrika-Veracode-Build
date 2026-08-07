@@ -77,7 +77,7 @@ runs:
     - name: Maven
       id: maven
       if: steps.select.outputs.build_system == 'maven'
-      uses: JuanCunhaa/Afrika-Veracode-Build/internal/builder/java-maven@v0.1.0
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/builder/java-maven@v0.1.1
       with:
         source: ${{ inputs.source }}
         build_plan_path: ${{ inputs.build_plan_path }}
@@ -96,7 +96,7 @@ runs:
     - name: Gradle
       id: gradle
       if: steps.select.outputs.build_system == 'gradle'
-      uses: JuanCunhaa/Afrika-Veracode-Build/internal/builder/java-gradle@v0.1.0
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/builder/java-gradle@v0.1.1
       with:
         source: ${{ inputs.source }}
         build_plan_path: ${{ inputs.build_plan_path }}
@@ -115,7 +115,7 @@ runs:
     - name: JavaScript/TypeScript
       id: js
       if: steps.select.outputs.language == 'javascript' || steps.select.outputs.language == 'typescript'
-      uses: JuanCunhaa/Afrika-Veracode-Build/internal/builder/javascript@v0.1.0
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/builder/javascript@v0.1.1
       with:
         source: ${{ inputs.source }}
         build_plan_path: ${{ inputs.build_plan_path }}
@@ -127,7 +127,7 @@ runs:
     - name: .NET
       id: dotnet
       if: steps.select.outputs.language == 'dotnet'
-      uses: JuanCunhaa/Afrika-Veracode-Build/internal/builder/dotnet@v0.1.0
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/builder/dotnet@v0.1.1
       with:
         source: ${{ inputs.source }}
         build_plan_path: ${{ inputs.build_plan_path }}

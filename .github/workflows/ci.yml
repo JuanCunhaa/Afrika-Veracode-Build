@@ -1,0 +1,215 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Prettier
+        run: npm run format:check
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Action SHA pinning
+        run: npm run pr
+
+      - name: actionlint
+        run: |
+          set -euo pipefail
+          VERSION=1.7.7
+          curl -fsSL "https://github.com/rhysd/actionlint/releases/download/v${VERSION}/actionlint_${VERSION}_linux_amd64.tar.gz" -o /tmp/actionlint.tgz
+          echo "023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757  /tmp/actionlint.tgz" | sha256sum -c -
+          tar -xzf /tmp/actionlint.tgz -C /tmp actionlint
+          /tmp/actionlint -color
+
+      - name: yamllint
+        run: |
+          set -euo pipefail
+          pip install yamllint==1.37.1
+          yamllint -d "{extends: relaxed, rules: {line-length: {max: 200}}}" action.yml internal .github/workflows
+
+  js-source:
+    name: Integration / JS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+      - name: Discovery + JS package + Doctor
+        run: |
+          set -euo pipefail
+          mkdir -p .veracode-build
+          export SOURCE=tests/fixtures/javascript
+          export PROJECT_PATH=.
+          export OUTPUT_DIR=.veracode-build
+          export LANGUAGE=javascript
+          export CONFIG_MODE=disabled
+          node internal/discovery/index.js
+          export BUILD_PLAN_PATH=.veracode-build/build-plan.json
+          export ARTIFACT_NAME=analysisPack.zip
+          node internal/builder/javascript/index.js
+          export ARTIFACT_PATH=.veracode-build/analysisPack.zip
+          export DOCTOR_MODE=standard
+          node internal/doctor/index.js
+
+  java-maven:
+    name: Integration / Java Maven
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+      - name: Maven build packaging
+        run: |
+          set -euo pipefail
+          mkdir -p .veracode-build
+          export SOURCE=tests/fixtures/java-maven
+          export OUTPUT_DIR=.veracode-build
+          node internal/discovery/index.js
+          export BUILD_PLAN_PATH=.veracode-build/build-plan.json
+          export RESTORE_DEPENDENCIES=true
+          export RUN_TESTS=false
+          node internal/builder/java-maven/index.js
+          export ARTIFACT_PATH=.veracode-build/analysisPack.zip
+          node internal/doctor/index.js
+
+  dotnet-modern:
+    name: Integration / .NET
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+      - name: dotnet publish packaging
+        run: |
+          set -euo pipefail
+          mkdir -p .veracode-build
+          export SOURCE=tests/fixtures/dotnet-modern
+          export OUTPUT_DIR=.veracode-build
+          node internal/discovery/index.js
+          export BUILD_PLAN_PATH=.veracode-build/build-plan.json
+          node internal/builder/dotnet/index.js
+          export ARTIFACT_PATH=.veracode-build/analysisPack.zip
+          node internal/doctor/index.js
+
+  gate:
+    name: Gate
+    runs-on: ubuntu-latest
+    needs: [quality, js-source, java-maven, dotnet-modern]
+    if: always()
+    steps:
+      - name: Require all parallel jobs green
+        run: |
+          set -euo pipefail
+          echo "quality=${{ needs.quality.result }}"
+          echo "js-source=${{ needs.js-source.result }}"
+          echo "java-maven=${{ needs.java-maven.result }}"
+          echo "dotnet-modern=${{ needs.dotnet-modern.result }}"
+
+          failed=0
+          for result in \
+            "${{ needs.quality.result }}" \
+            "${{ needs.js-source.result }}" \
+            "${{ needs.java-maven.result }}" \
+            "${{ needs.dotnet-modern.result }}"
+          do
+            if [ "$result" != "success" ]; then
+              failed=1
+            fi
+          done
+
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::Gate falhou — um ou mais jobs paralelos nao passaram."
+            exit 1
+          fi
+
+          echo "Gate ok — todas as esteiras passaram."
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: [gate]
+    if: >
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.gate.result == 'success'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Create GitHub Release from package.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          VERSION="$(node -p "require('./package.json').version")"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::package.json version invalida: $VERSION (esperado X.Y.Z)"
+            exit 1
+          fi
+
+          TAG="v${VERSION}"
+          echo "Versao do package.json: $VERSION (tag $TAG)"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG ja existe — nada a fazer."
+            exit 0
+          fi
+
+          cat > /tmp/release-notes.md <<EOF
+          Release ${TAG} of Afrika-Veracode-Build.
+
+          Prefer FULL COMMIT SHA when consuming this Action:
+
+              JuanCunhaa/Afrika-Veracode-Build@${GITHUB_SHA}
+
+          Tag ${TAG} points to this commit and can be used as a version reference.
+          EOF
+
+          sed -i 's/^          //' /tmp/release-notes.md
+
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes-file /tmp/release-notes.md \
+            --target "$GITHUB_SHA"
+
+          echo "Release $TAG criado em $GITHUB_SHA"
