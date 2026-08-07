@@ -13,8 +13,9 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0
 - Fixtures de integration reais em `tests/fixtures/integration/` (Java Maven/Gradle, JS/TS, .NET) + runner `scripts/run-integration-fixture.js`.
 - **Builder → Doctor Contract Tests** em `tests/contract/builder-doctor/` + runner `scripts/run-builder-doctor-contract.js` (falha com `BUILDER_DOCTOR_CONTRACT_BROKEN` se Builder ok e Doctor `INVALID`); docs em `docs/BUILDER-DOCTOR-CONTRACT.md`.
 - **Test Matrix** central em `tests/test-matrix.json` com perfis `pr` / `full` / `release` (resolve em `scripts/resolve-test-matrix.js`); shards Quality/Unit/Negative/Security/Builder-Doctor no workflow `CI`; schedule semanal full; docs em `docs/TEST-MATRIX.md`.
+- Politica **Secret Zero-Leak**: sanitizacao central (`sanitizeText` / `sanitizeError` / `sanitizeCommand` / `registerSecret`), `writeJson` scrub, job Gate `secret-leak` (`tests/security/secret-leak/`), docs em `SECURITY.md`.
 - Jobs de contract no workflow `CI` alimentando o Gate; matriz em `docs/INTEGRATION-MATRIX.md` / `docs/TEST-MATRIX.md`.
-- Scripts `npm test` / `npm run test:unit` / `npm run test:negative` / `npm run test:coverage` / `npm run test:contract` / `npm run test:matrix`.
+- Scripts `npm test` / `npm run test:unit` / `npm run test:negative` / `npm run test:coverage` / `npm run test:contract` / `npm run test:matrix` / `npm run test:secret-leak`.
 
 ### Changed
 

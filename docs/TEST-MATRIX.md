@@ -27,6 +27,7 @@ Experimental cells use `continue-on-error`. **Stable** cells never do.
 | `unit`                                                                                            | Unit tests + coverage                                    |
 | `negative`                                                                                        | Failure / error-code tests                               |
 | `security`                                                                                        | Action SHA pinning                                       |
+| `secret-leak`                                                                                     | Secret zero-leak suite (Gate blocker)                    |
 | `java-maven` / `java-gradle` / `javascript` / `typescript` / `dotnet-modern` / `dotnet-framework` | Builder → Doctor contract                                |
 | `gate`                                                                                            | Aggregate (skipped OK; failure/cancelled fail)           |
 | `veracode-e2e`                                                                                    | Prepared stub (`if: false`) for future real Veracode E2E |

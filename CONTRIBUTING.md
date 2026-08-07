@@ -24,4 +24,5 @@ Este projeto e proprietario. Contribuicoes externas requerem autorizacao previa 
 - Mantenha modulos pequenos em `internal/<responsabilidade>/`.
 - Adicione testes unitarios para Discovery, Fingerprint, Config, Sanitize e Doctor.
 - Actions externas sempre com SHA completo.
-- Nunca persista secret values em Build Config, logs ou artifacts.
+- **Zero-secret-logging:** nunca persista ou logue valores de secrets. Use `internal/utils/sanitize/` (`registerSecret`, `sanitizeText`, `sanitizeError`, `sanitizeCommand`). Ver `SECURITY.md`.
+- Antes do PR: `npm run test:secret-leak` deve passar (job Gate `secret-leak`).
