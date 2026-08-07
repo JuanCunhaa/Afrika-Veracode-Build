@@ -56,35 +56,26 @@ jobs:
           yamllint -d "{extends: relaxed, rules: {line-length: {max: 200}}}" action.yml internal .github/workflows
 
   java-maven:
-    name: Integration / Java Maven (${{ matrix.fixture }})
+    name: Contract / Java Maven (${{ matrix.case }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - fixture: java8-basic
+          - case: java8-basic
             java: '8'
-            runtime: '8'
-          - fixture: java11-basic
+          - case: java11-basic
             java: '11'
-            runtime: '11'
-          - fixture: java17-basic
+          - case: java17-basic
             java: '17'
-            runtime: '17'
-          - fixture: java21-basic
+          - case: java21-basic
             java: '21'
-            runtime: '21'
-          - fixture: war-java17
+          - case: war-java17
             java: '17'
-            runtime: '17'
-            zip_entry: '.war|.class'
-          - fixture: springboot-java17
+          - case: springboot-java17
             java: '17'
-            runtime: '17'
-          - fixture: multimodule-java17
+          - case: multimodule-java17
             java: '17'
-            runtime: '17'
-            project_path: core
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
@@ -95,42 +86,26 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
-      - name: Discovery + Maven build + Doctor
+      - name: Builder → Doctor contract
         run: |
           set -euo pipefail
-          EXTRA=()
-          if [ -n "${{ matrix.project_path }}" ]; then
-            EXTRA+=(--project-path "${{ matrix.project_path }}")
-          fi
-          ZIP_ENTRY='.class|.jar|.war'
-          if [ -n "${{ matrix.zip_entry }}" ]; then
-            ZIP_ENTRY='${{ matrix.zip_entry }}'
-          fi
-          node scripts/run-integration-fixture.js \
-            --source "tests/fixtures/integration/java/maven/${{ matrix.fixture }}" \
-            --expect-language java \
-            --expect-build-system maven \
-            --expect-runtime "${{ matrix.runtime }}" \
-            --builder java-maven \
-            --expect-zip-entry "$ZIP_ENTRY" \
-            "${EXTRA[@]}"
+          node scripts/run-builder-doctor-contract.js \
+            --family java-maven \
+            --case "${{ matrix.case }}"
 
   java-gradle:
-    name: Integration / Java Gradle (${{ matrix.fixture }})
+    name: Contract / Java Gradle (${{ matrix.case }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - fixture: java17-basic
+          - case: java17-basic
             java: '17'
-            runtime: '17'
-          - fixture: java21-basic
+          - case: java21-basic
             java: '21'
-            runtime: '21'
-          - fixture: kotlin-dsl-java17
+          - case: kotlin-dsl-java17
             java: '17'
-            runtime: '17'
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
@@ -141,98 +116,70 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
-      - name: Discovery + Gradle build + Doctor
+      - name: Builder → Doctor contract
         env:
           USE_WRAPPER: 'false'
         run: |
           set -euo pipefail
-          node scripts/run-integration-fixture.js \
-            --source "tests/fixtures/integration/java/gradle/${{ matrix.fixture }}" \
-            --expect-language java \
-            --expect-build-system gradle \
-            --expect-runtime "${{ matrix.runtime }}" \
-            --builder java-gradle \
-            --expect-zip-entry '.class|.jar'
+          node scripts/run-builder-doctor-contract.js \
+            --family java-gradle \
+            --case "${{ matrix.case }}"
 
   javascript:
-    name: Integration / JS (${{ matrix.fixture }})
+    name: Contract / JS (${{ matrix.case }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - fixture: vanilla-node
-            pkg: npm
-          - fixture: express
-            pkg: npm
-          - fixture: react
-            pkg: npm
-          - fixture: nestjs-yarn
-            pkg: yarn
-          - fixture: vue-pnpm
-            pkg: pnpm
+        case: [vanilla-node, express, react, nestjs-yarn, vue-pnpm]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
-      - name: Discovery + SOURCE_PACKAGE + Doctor
+      - name: Builder → Doctor contract
         run: |
           set -euo pipefail
-          node scripts/run-integration-fixture.js \
-            --source "tests/fixtures/integration/javascript/${{ matrix.fixture }}" \
-            --expect-language javascript \
-            --expect-build-system "${{ matrix.pkg }}" \
-            --expect-strategy SOURCE_PACKAGE \
-            --builder javascript \
-            --expect-zip-entry 'package.json' \
-            --forbid-zip-entry 'node_modules/'
+          node scripts/run-builder-doctor-contract.js \
+            --family javascript \
+            --case "${{ matrix.case }}"
 
   typescript:
-    name: Integration / TS (${{ matrix.fixture }})
+    name: Contract / TS (${{ matrix.case }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        fixture: [node-typescript, express-typescript, react-typescript]
+        case: [node-typescript, express-typescript, react-typescript]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
-      - name: Discovery + SOURCE_PACKAGE + Doctor
+      - name: Builder → Doctor contract
         run: |
           set -euo pipefail
-          node scripts/run-integration-fixture.js \
-            --source "tests/fixtures/integration/typescript/${{ matrix.fixture }}" \
-            --expect-language typescript \
-            --expect-strategy SOURCE_PACKAGE \
-            --builder javascript \
-            --expect-zip-entry '.ts' \
-            --forbid-zip-entry 'node_modules/'
+          node scripts/run-builder-doctor-contract.js \
+            --family typescript \
+            --case "${{ matrix.case }}"
 
   dotnet-modern:
-    name: Integration / .NET (${{ matrix.fixture }})
+    name: Contract / .NET (${{ matrix.case }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - fixture: net6-console
+          - case: net6-console
             sdk: '6.0.x'
-            runtime: 'net6'
-          - fixture: net8-console
+          - case: net8-console
             sdk: '8.0.x'
-            runtime: 'net8'
-          - fixture: net8-webapi
+          - case: net8-webapi
             sdk: '8.0.x'
-            runtime: 'net8'
-          - fixture: vbnet
+          - case: vbnet
             sdk: '8.0.x'
-            runtime: 'net8'
-          - fixture: multi-project-solution
+          - case: multi-project-solution
             sdk: '8.0.x'
-            runtime: 'net8'
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
@@ -241,18 +188,15 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
-      - name: Discovery + dotnet build + Doctor
+      - name: Builder → Doctor contract
         run: |
           set -euo pipefail
-          node scripts/run-integration-fixture.js \
-            --source "tests/fixtures/integration/dotnet/${{ matrix.fixture }}" \
-            --expect-language dotnet \
-            --expect-runtime "${{ matrix.runtime }}" \
-            --builder dotnet \
-            --expect-zip-entry '.dll'
+          node scripts/run-builder-doctor-contract.js \
+            --family dotnet \
+            --case "${{ matrix.case }}"
 
   dotnet-framework:
-    name: Integration / .NET Framework (net48)
+    name: Contract / .NET Framework (net48)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -262,16 +206,13 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
-      - name: Discovery + net48 build + Doctor
+      - name: Builder → Doctor contract
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/run-integration-fixture.js \
-            --source tests/fixtures/integration/dotnet/net48 \
-            --expect-language dotnet \
-            --expect-runtime net48 \
-            --builder dotnet \
-            --expect-zip-entry '.dll|.exe'
+          node scripts/run-builder-doctor-contract.js \
+            --family dotnet \
+            --case net48
 
   gate:
     name: Gate
