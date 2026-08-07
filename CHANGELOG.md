@@ -10,6 +10,8 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0
 
 - Suíte unitária expandida em `tests/unit/` (Discovery, BuildPlan, Doctor, Fingerprint, Config, Sanitize, Utils) com fixtures em `tests/fixtures/unit/`.
 - Suíte de negative/failure tests em `tests/negative/` com assertion de error codes e status Doctor (INVALID vs READY_WITH_WARNINGS).
+- Fixtures de integration reais em `tests/fixtures/integration/` (Java Maven/Gradle, JS/TS, .NET) + runner `scripts/run-integration-fixture.js`.
+- Jobs de integration no workflow `CI` (`java-maven`, `java-gradle`, `javascript`, `typescript`, `dotnet-modern`, `dotnet-framework`) alimentando o Gate; matriz em `docs/INTEGRATION-MATRIX.md`.
 - Scripts `npm test` / `npm run test:unit` / `npm run test:negative` / `npm run test:coverage` via runner cross-platform e step de coverage no job Quality.
 
 ### Changed

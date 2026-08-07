@@ -212,7 +212,7 @@ npm run format:check
 
 Os unit tests vivem em `tests/unit/` (discovery, build-plan, doctor, fingerprint, config, sanitize, utils) com fixtures em `tests/fixtures/unit/`. Os negative tests vivem em `tests/negative/` e provam falhas com error codes corretos (`UNSUPPORTED_LANGUAGE`, `AMBIGUOUS_PROJECT`, `DEPENDENCY_AUTH_REQUIRED`, `DOCTOR_FAILED`, …) e a distincao ERROR vs WARNING do Doctor. Sao rapidos, determinísticos e **nao** chamam a Veracode, registries externos nem credentials reais.
 
-No CI, a suíte roda no job **Quality** do workflow unico [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (PR e push em `main`), e o veredito final e o job **Gate**.
+No CI, unit/negative rodam no job **Quality**; integration fixtures reais rodam em jobs paralelos (`java-maven`, `java-gradle`, `javascript`, `typescript`, `dotnet-modern`, `dotnet-framework`) do workflow unico [`.github/workflows/ci.yml`](.github/workflows/ci.yml). O veredito final e o job **Gate**. Matriz: [docs/INTEGRATION-MATRIX.md](docs/INTEGRATION-MATRIX.md).
 
 ## Security
 

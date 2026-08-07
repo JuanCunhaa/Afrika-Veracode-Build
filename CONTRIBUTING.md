@@ -14,8 +14,9 @@ Este projeto e proprietario. Contribuicoes externas requerem autorizacao previa 
 
 - Unit: `tests/unit/**` + fixtures em `tests/fixtures/unit/`.
 - Negative: `tests/negative/**` — falhas esperadas com assertion de error code (nao apenas exit != 0).
-- Escopo: Discovery, BuildPlan, Fingerprint, Config, Sanitize, Doctor rules (sem builds reais).
-- CI: job Quality em `.github/workflows/ci.yml` (nao ha `quality.yml` separado); Gate e a fonte de verdade.
+- Integration: `tests/fixtures/integration/**` + `scripts/run-integration-fixture.js` (projetos reais; Gate via jobs em `ci.yml`). Ver `docs/INTEGRATION-MATRIX.md`.
+- Escopo unit/negative: Discovery, BuildPlan, Fingerprint, Config, Sanitize, Doctor rules (sem builds reais).
+- CI: job Quality + jobs de integration em `.github/workflows/ci.yml` (nao ha workflow `integration.yml` separado); Gate e a fonte de verdade.
 
 ## Regras
 
