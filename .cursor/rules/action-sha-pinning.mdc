@@ -1,0 +1,36 @@
+---
+description: Delimitador e pinning de Actions (interno vs externo)
+globs: "{action.yml,internal/**/action.yml,.github/workflows/**}"
+alwaysApply: false
+---
+
+# Action pinning — delimitador interno vs externo
+
+## Delimitador
+
+Tudo sob este prefixo e **interno** deste projeto:
+
+`JuanCunhaa/Afrika-Veracode-Build/`
+
+Qualquer outro `owner/repo` e **externo**.
+
+## Regras
+
+| Tipo | Formato obrigatorio |
+|------|---------------------|
+| Interno | `JuanCunhaa/Afrika-Veracode-Build/internal/<path>@v{version}` — `version` = `package.json` — ou SHA 40 hex |
+| Externo | `owner/repo@<sha40> # vX.Y.Z` |
+| Local `./` | So em `.github/workflows/` (CI deste repo). **Proibido** em `action.yml` / `internal/**` — em composite publicada o `./` resolve no repo do **consumidor** e quebra |
+
+## Ao nascer um `uses` novo
+
+1. Sub-action deste repo? Use o prefixo interno + `@vX.Y.Z` alinhado ao `package.json`.
+   Para bump: `npm run version:bump` (pergunta X/Y/Z e sincroniza uses internos).
+2. Action de terceiro? Pin SHA 40 hex + comentario `# vX.Y.Z`.
+3. Nao use `./`, `@main`, `@master`, `@latest` nem majors flutuantes (`@v4`).
+4. Rode `npm run pr` — o check usa o mesmo delimitador (`INTERNAL_OWNER_REPO`).
+
+Release automatico: push na `main` que altera `package.json` dispara o workflow Release,
+que le a versao e cria a GitHub Release `vX.Y.Z` se ainda nao existir.
+
+Se o owner/repo do projeto mudar, atualize `INTERNAL_OWNER_REPO` em `tests/security/check-action-pinning.js` e esta regra.

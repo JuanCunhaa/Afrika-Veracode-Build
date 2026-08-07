@@ -1,0 +1,91 @@
+---
+description: Ao finalizar mudancas — bump semver, commits por modulo, branch, push e PR para main
+alwaysApply: true
+---
+
+# Finalize → bump → branch → commits → PR
+
+Quando uma tarefa/modificacao pedida pelo usuario estiver **concluida** (codigo pronto, checks ok), execute este fluxo **sem esperar novo pedido** de commit/PR — esta regra autoriza.
+
+Nao rode o fluxo em perguntas exploratorias, refactors parciais a meio, ou se o usuario pediu explicitamente para nao versionar/abrir PR.
+
+## 1. Escolher X / Y / Z
+
+Decida o bump (padrao **Y** ou **Z**; **X** so com breaking change claro):
+
+| Ponto | Quando |
+|-------|--------|
+| **Z (patch)** | Bugfix, hardening, docs, testes, CI, pinning, refactors internos sem contrato novo |
+| **Y (minor)** | Feature compativel: novos inputs opcionais, novo detector/builder, novo workflow utilitario |
+| **X (major)** | Breaking: input removido/renomeado, output/contrato incompativel, comportamento que quebra consumidores |
+
+Na resposta final, diga em 1 linha: `Bump: Z (patch) — motivo curto`.
+
+Rode de forma nao-interativa:
+
+```bash
+npm run version:bump -- patch   # ou minor | major
+npm run pr
+```
+
+Atualize `CHANGELOG.md` na mesma leva (secao da nova versao).
+
+## 2. Branch
+
+A partir de `main` atualizada:
+
+- Z → `fix/<slug-curto>`
+- Y → `feat/<slug-curto>`
+- X → `breaking/<slug-curto>`
+- so chore/CI/docs sem feature → `chore/<slug-curto>` + bump Z
+
+Slug: kebab-case, sem espacos (ex.: `feat/action-pinning-check`).
+
+## 3. Commits separados por modulo
+
+**Um commit por modulo tocado** (nao amontoar tudo). Ordem tipica:
+
+1. Modulos de codigo (`internal/<nome>`, `action.yml`, `schemas/`, …)
+2. Testes (`tests/…`)
+3. CI/workflows (`.github/…`)
+4. Docs (`docs/`, `README.md`, `SECURITY.md`, …)
+5. Tooling (`scripts/`, `.cursor/rules/`, eslint/prettier)
+6. **Por ultimo:** bump (`package.json`, `package-lock.json`, uses `@vX.Y.Z`, `CHANGELOG.md`)
+
+Mensagens: imperativo, foco no *porquê*; prefixo do modulo ajuda:
+
+- `fix(doctor): …`
+- `feat(discovery): …`
+- `chore(ci): …`
+- `docs: …`
+- `chore(release): bump to vX.Y.Z`
+
+Siga o protocolo de commit do usuario (status/diff/log, HEREDOC, sem secrets, sem amend indevido, sem `--no-verify`).
+
+## 4. Push + PR para main
+
+```bash
+git push -u origin HEAD
+gh pr create --base main --title "…" --body "$(cat <<'EOF'
+## Summary
+- …
+
+## Bump
+- vA.B.C → vX.Y.Z (patch|minor|major): motivo
+
+## Test plan
+- [ ] npm run pr
+- [ ] npm test
+- [ ] …
+EOF
+)"
+```
+
+Devolva a URL do PR ao usuario.
+
+## 5. Nao fazer
+
+- Commit unico gigante misturando modulos
+- Bump X “por precaução”
+- Push/PR se nao ha mudancas reais
+- Pular `npm run pr` depois do bump
