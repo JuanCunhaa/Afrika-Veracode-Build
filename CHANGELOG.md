@@ -14,8 +14,9 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0
 - **Builder → Doctor Contract Tests** em `tests/contract/builder-doctor/` + runner `scripts/run-builder-doctor-contract.js` (falha com `BUILDER_DOCTOR_CONTRACT_BROKEN` se Builder ok e Doctor `INVALID`); docs em `docs/BUILDER-DOCTOR-CONTRACT.md`.
 - **Test Matrix** central em `tests/test-matrix.json` com perfis `pr` / `full` / `release` (resolve em `scripts/resolve-test-matrix.js`); shards Quality/Unit/Negative/Security/Builder-Doctor no workflow `CI`; schedule semanal full; docs em `docs/TEST-MATRIX.md`.
 - Politica **Secret Zero-Leak**: sanitizacao central (`sanitizeText` / `sanitizeError` / `sanitizeCommand` / `registerSecret`), `writeJson` scrub, job Gate `secret-leak` (`tests/security/secret-leak/`), docs em `SECURITY.md`.
+- Politica **Feature Completeness** (NO PARTIAL FEATURE): `docs/FEATURE-COMPLETENESS.md`, SoT `schemas/capabilities.json`, validator `npm run check:completeness` (`FEATURE_COMPLETENESS_FAILED`), job Gate `feature-completeness`, PR/issue templates.
 - Jobs de contract no workflow `CI` alimentando o Gate; matriz em `docs/INTEGRATION-MATRIX.md` / `docs/TEST-MATRIX.md`.
-- Scripts `npm test` / `npm run test:unit` / `npm run test:negative` / `npm run test:coverage` / `npm run test:contract` / `npm run test:matrix` / `npm run test:secret-leak`.
+- Scripts `npm test` / `npm run test:unit` / `npm run test:negative` / `npm run test:coverage` / `npm run test:contract` / `npm run test:matrix` / `npm run test:secret-leak` / `npm run check:completeness`.
 
 ### Changed
 

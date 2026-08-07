@@ -20,9 +20,11 @@ Este projeto e proprietario. Contribuicoes externas requerem autorizacao previa 
 
 ## Regras
 
+- **Feature Completeness (NO PARTIAL FEATURE):** nenhuma linguagem/modulo/regra relevante entra parcialmente. Ver [`docs/FEATURE-COMPLETENESS.md`](docs/FEATURE-COMPLETENESS.md) e `schemas/capabilities.json`. Antes do PR: `npm run check:completeness` (job Gate `feature-completeness`).
 - Nao invente requisitos de packaging da Veracode. Consulte a documentacao oficial e atualize `docs/VERACODE-PACKAGING.md`.
 - Mantenha modulos pequenos em `internal/<responsabilidade>/`.
 - Adicione testes unitarios para Discovery, Fingerprint, Config, Sanitize e Doctor.
 - Actions externas sempre com SHA completo.
 - **Zero-secret-logging:** nunca persista ou logue valores de secrets. Use `internal/utils/sanitize/` (`registerSecret`, `sanitizeText`, `sanitizeError`, `sanitizeCommand`). Ver `SECURITY.md`.
 - Antes do PR: `npm run test:secret-leak` deve passar (job Gate `secret-leak`).
+- Use o checklist do `.github/pull_request_template.md`. Issues de nova linguagem: `.github/ISSUE_TEMPLATE/new-language.yml`.

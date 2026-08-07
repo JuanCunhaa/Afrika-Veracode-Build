@@ -43,19 +43,23 @@ Detalhes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ## Supported Technologies
 
-| Technology    | Discovery | Build | Packaging |  Doctor |    MVP |
-| ------------- | --------: | ----: | --------: | ------: | -----: |
-| Java + Maven  |        ✅ |    ✅ |        ✅ |      ✅ |     ✅ |
-| Java + Gradle |        ✅ |    ✅ |        ✅ |      ✅ |     ✅ |
-| JavaScript    |        ✅ |   N/A |        ✅ |      ✅ |     ✅ |
-| TypeScript    |        ✅ |   N/A |        ✅ |      ✅ |     ✅ |
-| .NET C#       |        ✅ |    ✅ |        ✅ |      ✅ |     ✅ |
-| .NET VB.NET   |        ✅ |    ✅ |        ✅ |      ✅ |     ✅ |
-| ASP.NET       |        ✅ |    ✅ |        ✅ |      ✅ |     ✅ |
-| Blazor WASM   |        ✅ |    ✅ |        ✅ |      ✅ |     ✅ |
-| C++/CLI       |        🔎 |    ❌ |        ❌ | Parcial | Fase 2 |
-| Xamarin/MAUI  |        🔎 |    ❌ |        ❌ | Parcial | Fase 2 |
-| Python        |        ❌ |    ❌ |        ❌ |      ❌ | Fase 2 |
+Status lifecycle ([Feature Completeness](docs/FEATURE-COMPLETENESS.md) · [`schemas/capabilities.json`](schemas/capabilities.json)):
+
+| Technology    | Discovery | Build | Packaging |  Doctor | Status       |
+| ------------- | --------: | ----: | --------: | ------: | ------------ |
+| Java + Maven  |        ✅ |    ✅ |        ✅ |      ✅ | **Beta**     |
+| Java + Gradle |        ✅ |    ✅ |        ✅ |      ✅ | **Beta**     |
+| JavaScript    |        ✅ |   N/A |        ✅ |      ✅ | **Beta**     |
+| TypeScript    |        ✅ |   N/A |        ✅ |      ✅ | **Beta**     |
+| .NET C#       |        ✅ |    ✅ |        ✅ |      ✅ | **Beta**     |
+| .NET VB.NET   |        ✅ |    ✅ |        ✅ |      ✅ | **Beta**     |
+| ASP.NET       |        ✅ |    ✅ |        ✅ |      ✅ | **Beta**     |
+| Blazor WASM   |        ✅ |    ✅ |        ✅ |      ✅ | **Beta**     |
+| C++/CLI       |        🔎 |    ❌ |        ❌ | Parcial | Experimental |
+| Xamarin/MAUI  |        🔎 |    ❌ |        ❌ | Parcial | Experimental |
+| Python        |        ❌ |    ❌ |        ❌ |      ❌ | Planned      |
+
+**Beta** = ciclo interno completo (Discovery → Packager/Builder → Doctor → testes → matrix); **Stable** exige Veracode E2E real. Nenhuma linguagem nova entra como suporte oficial sem passar pelo Feature Completeness Contract (`npm run check:completeness`).
 
 ## How It Works
 
@@ -208,11 +212,12 @@ npm run test:negative    # somente tests/negative
 npm run test:coverage    # coverage statement/branch (experimental)
 npm run lint
 npm run format:check
+npm run check:completeness   # Feature Completeness Contract
 ```
 
-Os unit tests vivem em `tests/unit/` (discovery, build-plan, doctor, fingerprint, config, sanitize, utils) com fixtures em `tests/fixtures/unit/`. Os negative tests vivem em `tests/negative/` e provam falhas com error codes corretos (`UNSUPPORTED_LANGUAGE`, `AMBIGUOUS_PROJECT`, `DEPENDENCY_AUTH_REQUIRED`, `DOCTOR_FAILED`, …) e a distincao ERROR vs WARNING do Doctor. Sao rapidos, determinísticos e **nao** chamam a Veracode, registries externos nem credentials reais.
+Os unit tests vivem em `tests/unit/` (discovery, build-plan, doctor, fingerprint, config, sanitize, utils, security/completeness) com fixtures em `tests/fixtures/unit/`. Os negative tests vivem em `tests/negative/` e provam falhas com error codes corretos (`UNSUPPORTED_LANGUAGE`, `AMBIGUOUS_PROJECT`, `DEPENDENCY_AUTH_REQUIRED`, `DOCTOR_FAILED`, …) e a distincao ERROR vs WARNING do Doctor. Sao rapidos, determinísticos e **nao** chamam a Veracode, registries externos nem credentials reais.
 
-No CI, unit/negative rodam no job **Quality**; integration fixtures reais rodam em jobs paralelos (`java-maven`, `java-gradle`, `javascript`, `typescript`, `dotnet-modern`, `dotnet-framework`) do workflow unico [`.github/workflows/ci.yml`](.github/workflows/ci.yml). O veredito final e o job **Gate**. Matriz: [docs/INTEGRATION-MATRIX.md](docs/INTEGRATION-MATRIX.md).
+No CI, unit/negative rodam nos jobs **unit** / **negative**; security, **secret-leak** e **feature-completeness** rodam em paralelo; integration/contract em jobs por tecnologia. O veredito final e o job **Gate**. Matriz: [docs/INTEGRATION-MATRIX.md](docs/INTEGRATION-MATRIX.md) · Completeness: [docs/FEATURE-COMPLETENESS.md](docs/FEATURE-COMPLETENESS.md).
 
 ## Security
 
