@@ -70,18 +70,20 @@ Devolva a URL do PR ao usuario.
 
 ## 5. Gate obrigatorio: CI 100% verde
 
-**Nao considere a tarefa finalizada** ate Quality (e demais checks do PR/push) estarem **todos verdes**.
+Workflow unico: **CI** (`.github/workflows/ci.yml`) — jobs paralelos + job **Gate**.
 
-1. Acompanhe com `gh pr checks` / `gh run watch` / `gh run list`.
-2. Se **qualquer** job/step falhar:
+**Nao considere a tarefa finalizada** ate o run **CI** estar verde (job Gate success).
+
+1. Acompanhe com `gh run watch` / `gh pr checks` (um unico workflow).
+2. Se **qualquer** job falhar (Gate vermelho):
    - diagnostique o log (`gh run view <id> --log-failed`)
    - corrija **apenas codigo/config** necessario
    - commit + push de correcao
    - **nao** rode `version:bump`
    - **nao** altere `CHANGELOG.md`
    - **nao** mude tag/release por causa do hotfix de CI
-   - repita ate 100% passar
-3. So depois do CI verde encerre a tarefa e informe o resultado ao usuario.
+   - repita ate o Gate passar
+3. So depois do Gate verde encerre a tarefa e informe o resultado ao usuario.
 
 Correcoes de CI sao commits `fix(ci): …` / `chore(ci): …` / `style: …` conforme o caso.
 
