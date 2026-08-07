@@ -115,10 +115,7 @@ function parseUses(usesValue) {
  * @returns {boolean}
  */
 function isInternalAction(action) {
-  return (
-    action === INTERNAL_OWNER_REPO ||
-    action.startsWith(`${INTERNAL_OWNER_REPO}/`)
-  );
+  return action === INTERNAL_OWNER_REPO || action.startsWith(`${INTERNAL_OWNER_REPO}/`);
 }
 
 /**

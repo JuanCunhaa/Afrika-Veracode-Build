@@ -37,8 +37,7 @@ const EXPLAIN = {
   patch: {
     letter: 'Z',
     name: 'PATCH (Z)',
-    meaning:
-      'Correcao compativel: bugfix, docs, hardening e ajustes internos sem mudar o contrato publico.'
+    meaning: 'Correcao compativel: bugfix, docs, hardening e ajustes internos sem mudar o contrato publico.'
   }
 };
 
@@ -47,7 +46,9 @@ const EXPLAIN = {
  * @returns {{ major: number, minor: number, patch: number }}
  */
 function parseSemver(version) {
-  const m = String(version).trim().match(/^(\d+)\.(\d+)\.(\d+)$/);
+  const m = String(version)
+    .trim()
+    .match(/^(\d+)\.(\d+)\.(\d+)$/);
   if (!m) {
     throw new Error(`Versao invalida em package.json: "${version}" (esperado X.Y.Z)`);
   }
@@ -108,9 +109,7 @@ function askBumpKind() {
     console.log('');
 
     for (;;) {
-      const answer = await ask(
-        'Qual ponto atualizar? [X=major / Y=minor / Z=patch] (ou 1/2/3): '
-      );
+      const answer = await ask('Qual ponto atualizar? [X=major / Y=minor / Z=patch] (ou 1/2/3): ');
       const kind = normalizeChoice(answer);
       if (kind) {
         rl.close();
@@ -163,10 +162,7 @@ function rewriteInternalActionTags(oldTag, newTag) {
 
     // Troca so refs deste owner/repo (evita comentario # vX.Y.Z de actions externas)
     const after = before.replace(
-      new RegExp(
-        `(JuanCunhaa/Afrika-Veracode-Build(?:/[^\\s@]+)?)@${oldTag.replace(/\./g, '\\.')}`,
-        'g'
-      ),
+      new RegExp(`(JuanCunhaa/Afrika-Veracode-Build(?:/[^\\s@]+)?)@${oldTag.replace(/\./g, '\\.')}`, 'g'),
       `$1@${newTag}`
     );
     if (after === before) continue;
@@ -236,9 +232,7 @@ async function main() {
   console.log('Proximos passos:');
   console.log('  1. Atualize CHANGELOG.md com as mudancas desta versao.');
   console.log('  2. Commit na main (ou via PR).');
-  console.log(
-    `  3. O workflow Release na main cria o GitHub Release ${newTag} automaticamente.`
-  );
+  console.log(`  3. O workflow Release na main cria o GitHub Release ${newTag} automaticamente.`);
   console.log('  4. Rode npm run pr para validar o pinning.');
 }
 
