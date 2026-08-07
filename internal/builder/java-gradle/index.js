@@ -18,6 +18,24 @@ allprojects {
 }
 `;
 
+/**
+ * Cria init script temporario, executa fn(initFile) e remove o arquivo no finally.
+ * Nao altera arquivos do projeto — so aplica debug via --init-script.
+ */
+function withGradleInitScript(fn) {
+  const initFile = path.join(os.tmpdir(), `veracode-gradle-init-${Date.now()}.gradle`);
+  fs.writeFileSync(initFile, INIT_SCRIPT, { encoding: 'utf8', mode: 0o600 });
+  try {
+    return fn(initFile);
+  } finally {
+    try {
+      fs.unlinkSync(initFile);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 function run(cmd, args, opts = {}) {
   console.log(`$ ${cmd} ${args.join(' ')}`);
   const res = spawnSync(cmd, args, {
@@ -71,10 +89,7 @@ function main() {
     }
   }
 
-  const initFile = path.join(os.tmpdir(), `veracode-gradle-init-${Date.now()}.gradle`);
-  fs.writeFileSync(initFile, INIT_SCRIPT, { encoding: 'utf8', mode: 0o600 });
-
-  try {
+  withGradleInitScript((initFile) => {
     runHook(envStr('PRE_RESTORE_COMMAND'), projectPath);
     if (restore) {
       try {
@@ -129,13 +144,7 @@ function main() {
       builder_seconds: elapsed.toFixed(3)
     });
     console.log(`Gradle builder: ${elapsed.toFixed(1)}s`);
-  } finally {
-    try {
-      fs.unlinkSync(initFile);
-    } catch {
-      /* ignore */
-    }
-  }
+  });
 }
 
 if (require.main === module) {
@@ -147,4 +156,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { main };
+module.exports = { main, withGradleInitScript, INIT_SCRIPT };
