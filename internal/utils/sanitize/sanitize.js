@@ -83,11 +83,10 @@ function scrubSecretsFromObject(input) {
 
   const out = {};
   for (const [key, value] of Object.entries(input)) {
-    if (looksLikeSecretEnvName(key) && typeof value === 'string' && value.length > 0 && !isEnvVarNameOnly(key, value)) {
-      // Permite listas de nomes de variaveis; bloqueia valores.
-      if (looksLikeSecretValue(value) || !/^[A-Z][A-Z0-9_]*$/.test(value)) {
-        continue;
-      }
+    // Nunca persiste valores sob chaves secret-like (TOKEN/PASSWORD/…).
+    // Listas de nomes (ex.: requiredEnvironmentVariables) sao arrays e passam pelo branch Array.
+    if (looksLikeSecretEnvName(key) && typeof value === 'string' && value.length > 0) {
+      continue;
     }
     if (looksLikeSecretValue(value)) {
       continue;
@@ -95,15 +94,6 @@ function scrubSecretsFromObject(input) {
     out[key] = scrubSecretsFromObject(value);
   }
   return out;
-}
-
-/**
- * @param {string} key
- * @param {string} value
- * @returns {boolean}
- */
-function isEnvVarNameOnly(key, value) {
-  return key === 'requiredEnvironmentVariables' || /^[A-Z][A-Z0-9_]*$/.test(value);
 }
 
 /**
