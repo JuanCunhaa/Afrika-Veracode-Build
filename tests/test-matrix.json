@@ -1,0 +1,402 @@
+{
+  "version": 1,
+  "description": "Source of truth for Afrika-Veracode-Build test matrices (PR / Full / Release). Profiles select subsets; stability controls continue-on-error.",
+  "profiles": {
+    "pr": {
+      "failFast": true,
+      "description": "Fast representative matrix for pull_request and push to main (Gate)."
+    },
+    "full": {
+      "failFast": false,
+      "description": "All declared supported versions (schedule + workflow_dispatch)."
+    },
+    "release": {
+      "failFast": false,
+      "description": "Unit + negative + security + PR + Full before cutting a release tag."
+    }
+  },
+  "runnerDefaults": {
+    "node": "20",
+    "os": "ubuntu-latest"
+  },
+  "pinnedActions": {
+    "checkout": "actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+    "checkoutComment": "v4.2.2",
+    "setupNode": "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+    "setupNodeComment": "v4.4.0",
+    "setupJava": "actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00",
+    "setupJavaComment": "v4.7.1",
+    "setupDotnet": "actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9",
+    "setupDotnetComment": "v4.3.1",
+    "setupGradle": "gradle/actions/setup-gradle@0bdd871935719febd78681f197cd39af5b6e16a6",
+    "setupGradleComment": "v4.2.2"
+  },
+  "future": {
+    "veracodeRealE2e": {
+      "status": "prepared",
+      "profiles": ["release"],
+      "requires": ["VERACODE_API_ID", "VERACODE_API_KEY", "tenant"],
+      "note": "Placeholder only — do not enable without credentials/tenant."
+    }
+  },
+  "javaMaven": [
+    {
+      "case": "java17-basic",
+      "java": "17",
+      "scenario": "Basic",
+      "stability": "stable",
+      "profiles": ["pr", "full", "release"]
+    },
+    {
+      "case": "java21-basic",
+      "java": "21",
+      "scenario": "Basic",
+      "stability": "stable",
+      "profiles": ["pr", "full", "release"]
+    },
+    {
+      "case": "springboot-java17",
+      "java": "17",
+      "scenario": "Spring Boot",
+      "stability": "stable",
+      "profiles": ["pr", "full", "release"]
+    },
+    {
+      "case": "java8-basic",
+      "java": "8",
+      "scenario": "Basic",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "java11-basic",
+      "java": "11",
+      "scenario": "Basic",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "war-java17",
+      "java": "17",
+      "scenario": "WAR",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "springboot-java21",
+      "java": "21",
+      "scenario": "Spring Boot",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "multimodule-java17",
+      "java": "17",
+      "scenario": "Multi-module",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "java25-basic",
+      "java": "25",
+      "scenario": "Basic",
+      "stability": "experimental",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "java26-basic",
+      "java": "26",
+      "scenario": "Basic",
+      "stability": "experimental",
+      "profiles": ["full", "release"]
+    }
+  ],
+  "javaGradle": [
+    {
+      "case": "java17-basic",
+      "java": "17",
+      "scenario": "Basic",
+      "stability": "stable",
+      "profiles": ["pr", "full", "release"]
+    },
+    {
+      "case": "java21-basic",
+      "java": "21",
+      "scenario": "Basic",
+      "stability": "stable",
+      "profiles": ["pr", "full", "release"]
+    },
+    {
+      "case": "kotlin-dsl-java17",
+      "java": "17",
+      "scenario": "Kotlin DSL",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "java8-basic",
+      "java": "8",
+      "scenario": "Basic",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "java11-basic",
+      "java": "11",
+      "scenario": "Basic",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "java25-basic",
+      "java": "25",
+      "scenario": "Basic",
+      "stability": "experimental",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "java26-basic",
+      "java": "26",
+      "scenario": "Basic",
+      "stability": "experimental",
+      "profiles": ["full", "release"]
+    }
+  ],
+  "javascript": [
+    {
+      "case": "vanilla-node",
+      "scenario": "Node npm",
+      "node": "20",
+      "stability": "stable",
+      "profiles": ["pr", "full", "release"]
+    },
+    {
+      "case": "nestjs-yarn",
+      "scenario": "NestJS yarn",
+      "node": "20",
+      "stability": "stable",
+      "profiles": ["pr", "full", "release"]
+    },
+    {
+      "case": "vue-pnpm",
+      "scenario": "Vue pnpm",
+      "node": "20",
+      "stability": "stable",
+      "profiles": ["pr", "full", "release"]
+    },
+    {
+      "case": "express",
+      "scenario": "Express",
+      "node": "20",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "react",
+      "scenario": "React JSX",
+      "node": "20",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "nextjs",
+      "scenario": "Next.js",
+      "node": "20",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "angular",
+      "scenario": "Angular",
+      "node": "20",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    }
+  ],
+  "typescript": [
+    {
+      "case": "node-typescript",
+      "scenario": "Node TS",
+      "node": "20",
+      "stability": "stable",
+      "profiles": ["pr", "full", "release"]
+    },
+    {
+      "case": "react-typescript",
+      "scenario": "React TSX",
+      "node": "20",
+      "stability": "stable",
+      "profiles": ["pr", "full", "release"]
+    },
+    {
+      "case": "express-typescript",
+      "scenario": "Express TS",
+      "node": "20",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "nextjs-typescript",
+      "scenario": "Next.js TSX",
+      "node": "20",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    }
+  ],
+  "dotnetModern": [
+    {
+      "case": "net8-console",
+      "sdk": "8.0.x",
+      "version": "8",
+      "scenario": "Console",
+      "stability": "stable",
+      "profiles": ["pr", "full", "release"]
+    },
+    {
+      "case": "net8-webapi",
+      "sdk": "8.0.x",
+      "version": "8",
+      "scenario": "Web API",
+      "stability": "stable",
+      "profiles": ["pr", "full", "release"]
+    },
+    {
+      "case": "net10-console",
+      "sdk": "10.0.x",
+      "version": "10",
+      "scenario": "Console",
+      "stability": "experimental",
+      "profiles": ["pr", "full", "release"]
+    },
+    {
+      "case": "net6-console",
+      "sdk": "6.0.x",
+      "version": "6",
+      "scenario": "Console",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "net7-console",
+      "sdk": "7.0.x",
+      "version": "7",
+      "scenario": "Console",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "net9-console",
+      "sdk": "9.0.x",
+      "version": "9",
+      "scenario": "Console",
+      "stability": "experimental",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "vbnet",
+      "sdk": "8.0.x",
+      "version": "8",
+      "scenario": "VB.NET",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "multi-project-solution",
+      "sdk": "8.0.x",
+      "version": "8",
+      "scenario": "Multi-project",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "net8-classlibrary",
+      "sdk": "8.0.x",
+      "version": "8",
+      "scenario": "Class Library",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "net8-aspnet-core",
+      "sdk": "8.0.x",
+      "version": "8",
+      "scenario": "ASP.NET Core",
+      "stability": "stable",
+      "profiles": ["full", "release"]
+    },
+    {
+      "case": "net8-blazor-wasm",
+      "sdk": "8.0.x",
+      "version": "8",
+      "scenario": "Blazor WASM",
+      "stability": "experimental",
+      "profiles": ["full", "release"]
+    }
+  ],
+  "dotnetFramework": [
+    {
+      "case": "net48",
+      "version": "4.8",
+      "scenario": "Framework",
+      "os": "windows-latest",
+      "stability": "stable",
+      "profiles": ["pr", "full", "release"]
+    }
+  ],
+  "supportTable": [
+    {
+      "technology": "Java Maven",
+      "versions": "8, 11, 17, 21",
+      "os": "ubuntu-latest",
+      "prTested": "17, 21 (+ Spring Boot 17)",
+      "fullTested": "8–21 + frameworks; 25–26 experimental",
+      "releaseRequired": "yes",
+      "stability": "Stable (25/26 Experimental)"
+    },
+    {
+      "technology": "Java Gradle",
+      "versions": "8, 11, 17, 21",
+      "os": "ubuntu-latest",
+      "prTested": "17, 21",
+      "fullTested": "8–21 + Kotlin DSL; 25–26 experimental",
+      "releaseRequired": "yes",
+      "stability": "Stable (25/26 Experimental)"
+    },
+    {
+      "technology": "JavaScript",
+      "versions": "Node 20 (runner)",
+      "os": "ubuntu-latest",
+      "prTested": "npm / yarn / pnpm reps",
+      "fullTested": "Express, React, Next, Angular, Nest, Vue",
+      "releaseRequired": "yes",
+      "stability": "Stable"
+    },
+    {
+      "technology": "TypeScript",
+      "versions": "Node 20 (runner)",
+      "os": "ubuntu-latest",
+      "prTested": "Node TS, React TSX",
+      "fullTested": "+ Express TS, Next TSX",
+      "releaseRequired": "yes",
+      "stability": "Stable"
+    },
+    {
+      "technology": ".NET (modern)",
+      "versions": "6, 7, 8",
+      "os": "ubuntu-latest",
+      "prTested": "8 Console/WebAPI; 10 experimental",
+      "fullTested": "6–8 + project types; 9–10 / Blazor experimental",
+      "releaseRequired": "yes",
+      "stability": "Stable (9/10/Blazor Experimental)"
+    },
+    {
+      "technology": ".NET Framework",
+      "versions": "4.8",
+      "os": "windows-latest",
+      "prTested": "4.8",
+      "fullTested": "4.8",
+      "releaseRequired": "yes",
+      "stability": "Stable"
+    }
+  ]
+}
