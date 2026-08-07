@@ -1,0 +1,65 @@
+name: 'Validate Inputs'
+description: 'Valida inputs da Afrika-Veracode-Build.'
+
+inputs:
+  config_mode:
+    required: false
+    default: 'auto'
+  doctor_mode:
+    required: false
+    default: 'standard'
+  java_package_mode:
+    required: false
+    default: 'compiled'
+  config_org:
+    required: false
+    default: ''
+  config_github_app_id:
+    required: false
+    default: ''
+  config_github_app_private_key:
+    required: false
+    default: ''
+  config_github_app_installation_id:
+    required: false
+    default: ''
+  config_github_token:
+    required: false
+    default: ''
+  artifact_path:
+    required: false
+    default: ''
+
+outputs:
+  config_mode:
+    value: ${{ steps.run.outputs.config_mode }}
+  doctor_mode:
+    value: ${{ steps.run.outputs.doctor_mode }}
+  java_package_mode:
+    value: ${{ steps.run.outputs.java_package_mode }}
+  doctor_only:
+    value: ${{ steps.run.outputs.doctor_only }}
+  validated:
+    value: ${{ steps.run.outputs.validated }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validar inputs
+      id: run
+      shell: bash
+      env:
+        CONFIG_MODE: ${{ inputs.config_mode }}
+        DOCTOR_MODE: ${{ inputs.doctor_mode }}
+        JAVA_PACKAGE_MODE: ${{ inputs.java_package_mode }}
+        CONFIG_ORG: ${{ inputs.config_org }}
+        CONFIG_GITHUB_APP_ID: ${{ inputs.config_github_app_id }}
+        CONFIG_GITHUB_APP_PRIVATE_KEY: ${{ inputs.config_github_app_private_key }}
+        CONFIG_GITHUB_APP_INSTALLATION_ID: ${{ inputs.config_github_app_installation_id }}
+        CONFIG_GITHUB_TOKEN: ${{ inputs.config_github_token }}
+        ARTIFACT_PATH: ${{ inputs.artifact_path }}
+      run: |
+        set -euo pipefail
+        echo "::group::Veracode Build - Configuration"
+        node "$GITHUB_ACTION_PATH/index.js"
+        echo "::endgroup::"

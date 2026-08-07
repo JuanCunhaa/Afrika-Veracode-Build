@@ -1,0 +1,48 @@
+name: 'Fingerprint'
+description: 'Calcula fingerprint SHA-256 dos manifests relevantes do projeto.'
+
+inputs:
+  project_path:
+    description: 'Caminho do projeto'
+    required: false
+    default: '.'
+  language:
+    description: 'Linguagem (para selecionar manifests)'
+    required: false
+    default: ''
+  build_system:
+    description: 'Build system'
+    required: false
+    default: ''
+  output_file:
+    description: 'Arquivo JSON de saida do fingerprint'
+    required: false
+    default: '.veracode-build/fingerprint.json'
+
+outputs:
+  fingerprint:
+    description: 'Valor SHA-256'
+    value: ${{ steps.run.outputs.fingerprint }}
+  algorithm:
+    description: 'Algoritmo'
+    value: ${{ steps.run.outputs.algorithm }}
+  files:
+    description: 'Lista de arquivos (JSON array)'
+    value: ${{ steps.run.outputs.files }}
+
+runs:
+  using: composite
+  steps:
+    - name: Calcular fingerprint
+      id: run
+      shell: bash
+      env:
+        PROJECT_PATH: ${{ inputs.project_path }}
+        LANGUAGE: ${{ inputs.language }}
+        BUILD_SYSTEM: ${{ inputs.build_system }}
+        OUTPUT_FILE: ${{ inputs.output_file }}
+      run: |
+        set -euo pipefail
+        echo "::group::Veracode Build - Fingerprint"
+        node "$GITHUB_ACTION_PATH/index.js"
+        echo "::endgroup::"

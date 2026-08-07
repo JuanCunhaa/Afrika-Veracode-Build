@@ -1,0 +1,25 @@
+name: 'Sanitize'
+description: 'Utilitario de sanitizacao (usado via Node require; action de apoio para testes).'
+
+inputs:
+  text:
+    description: 'Texto a sanitizar'
+    required: false
+    default: ''
+
+outputs:
+  sanitized:
+    description: 'Texto sanitizado'
+    value: ${{ steps.run.outputs.sanitized }}
+
+runs:
+  using: composite
+  steps:
+    - name: Sanitizar
+      id: run
+      shell: bash
+      env:
+        TEXT: ${{ inputs.text }}
+      run: |
+        set -euo pipefail
+        node "$GITHUB_ACTION_PATH/index.js"

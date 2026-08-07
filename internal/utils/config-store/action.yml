@@ -1,0 +1,82 @@
+name: 'Config Store'
+description: 'Load/save build-config.json remoto (atualizavel) via GitHub App ou PAT.'
+
+inputs:
+  command:
+    description: 'decide | get-config | put-config | check-repo'
+    required: true
+  config_mode:
+    required: false
+    default: 'auto'
+  config_org:
+    required: false
+    default: ''
+  config_repo:
+    required: false
+    default: 'Afrika-Veracode-Build-Configs'
+  config_github_app_id:
+    required: false
+    default: ''
+  config_github_app_private_key:
+    required: false
+    default: ''
+  config_github_app_installation_id:
+    required: false
+    default: ''
+  config_github_token:
+    required: false
+    default: ''
+  scan_repository:
+    required: false
+    default: ''
+  config_out_file:
+    required: false
+    default: '.veracode-build/remote-build-config.json'
+  config_file:
+    required: false
+    default: ''
+  config_sha:
+    required: false
+    default: ''
+
+outputs:
+  should_fetch:
+    value: ${{ steps.run.outputs.should_fetch }}
+  should_save:
+    value: ${{ steps.run.outputs.should_save }}
+  force_rediscover:
+    value: ${{ steps.run.outputs.force_rediscover }}
+  has_config:
+    value: ${{ steps.run.outputs.has_config }}
+  config_sha:
+    value: ${{ steps.run.outputs.config_sha }}
+  config_path:
+    value: ${{ steps.run.outputs.config_path }}
+  config_saved:
+    value: ${{ steps.run.outputs.config_saved }}
+  token_source:
+    value: ${{ steps.run.outputs.token_source }}
+
+runs:
+  using: composite
+  steps:
+    - name: Config Store
+      id: run
+      shell: bash
+      env:
+        CONFIG_MODE: ${{ inputs.config_mode }}
+        CONFIG_ORG: ${{ inputs.config_org }}
+        CONFIG_REPO: ${{ inputs.config_repo }}
+        CONFIG_GITHUB_APP_ID: ${{ inputs.config_github_app_id }}
+        CONFIG_GITHUB_APP_PRIVATE_KEY: ${{ inputs.config_github_app_private_key }}
+        CONFIG_GITHUB_APP_INSTALLATION_ID: ${{ inputs.config_github_app_installation_id }}
+        CONFIG_GITHUB_TOKEN: ${{ inputs.config_github_token }}
+        SCAN_REPOSITORY: ${{ inputs.scan_repository }}
+        CONFIG_OUT_FILE: ${{ inputs.config_out_file }}
+        CONFIG_FILE: ${{ inputs.config_file }}
+        CONFIG_SHA: ${{ inputs.config_sha }}
+      run: |
+        set -euo pipefail
+        echo "::group::Veracode Build - Config Store"
+        node "$GITHUB_ACTION_PATH/github-config.js" "${{ inputs.command }}"
+        echo "::endgroup::"

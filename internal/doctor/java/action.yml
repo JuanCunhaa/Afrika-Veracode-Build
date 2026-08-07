@@ -1,0 +1,11 @@
+name: 'Doctor Java'
+description: 'Perfil Java do Doctor (invocado via registry central).'
+
+runs:
+  using: composite
+  steps:
+    - name: Info
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "Use internal/doctor (registry). Perfil java-compiled|java-source."

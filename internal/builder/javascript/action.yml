@@ -1,0 +1,54 @@
+name: 'JavaScript/TypeScript Source Packager'
+description: 'Empacota source legivel JS/TS sem production build.'
+
+inputs:
+  source:
+    required: false
+    default: '.'
+  build_plan_path:
+    required: true
+  output_dir:
+    required: false
+    default: '.veracode-build'
+  artifact_name:
+    required: false
+    default: 'analysisPack.zip'
+  javascript_exclude_patterns:
+    required: false
+    default: ''
+  build_command:
+    required: false
+    default: ''
+
+outputs:
+  restore_status:
+    value: ${{ steps.run.outputs.restore_status }}
+  build_status:
+    value: ${{ steps.run.outputs.build_status }}
+  artifact_path:
+    value: ${{ steps.run.outputs.artifact_path }}
+  artifact_name:
+    value: ${{ steps.run.outputs.artifact_name }}
+  artifact_status:
+    value: ${{ steps.run.outputs.artifact_status }}
+  builder_seconds:
+    value: ${{ steps.run.outputs.builder_seconds }}
+
+runs:
+  using: composite
+  steps:
+    - name: JS/TS Source Package
+      id: run
+      shell: bash
+      env:
+        SOURCE: ${{ inputs.source }}
+        BUILD_PLAN_PATH: ${{ inputs.build_plan_path }}
+        OUTPUT_DIR: ${{ inputs.output_dir }}
+        ARTIFACT_NAME: ${{ inputs.artifact_name }}
+        JAVASCRIPT_EXCLUDE_PATTERNS: ${{ inputs.javascript_exclude_patterns }}
+        BUILD_COMMAND: ${{ inputs.build_command }}
+      run: |
+        set -euo pipefail
+        echo "::group::Veracode Build - Builder"
+        node "$GITHUB_ACTION_PATH/index.js"
+        echo "::endgroup::"

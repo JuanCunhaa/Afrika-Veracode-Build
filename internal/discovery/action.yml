@@ -1,0 +1,99 @@
+name: 'Discovery'
+description: 'Detecta linguagem, runtime, build system e gera BuildPlan.'
+
+inputs:
+  source:
+    required: false
+    default: '.'
+  project_path:
+    required: false
+    default: '.'
+  language:
+    required: false
+    default: 'auto'
+  framework:
+    required: false
+    default: 'auto'
+  runtime_version:
+    required: false
+    default: 'auto'
+  build_system:
+    required: false
+    default: 'auto'
+  package_manager:
+    required: false
+    default: 'auto'
+  packaging_strategy:
+    required: false
+    default: 'auto'
+  java_package_mode:
+    required: false
+    default: 'compiled'
+  run_tests:
+    required: false
+    default: 'false'
+  output_dir:
+    required: false
+    default: '.veracode-build'
+  skip_discovery:
+    required: false
+    default: 'false'
+  config_file:
+    required: false
+    default: ''
+
+outputs:
+  language:
+    value: ${{ steps.run.outputs.language }}
+  framework:
+    value: ${{ steps.run.outputs.framework }}
+  runtime_version:
+    value: ${{ steps.run.outputs.runtime_version }}
+  build_system:
+    value: ${{ steps.run.outputs.build_system }}
+  package_manager:
+    value: ${{ steps.run.outputs.package_manager }}
+  packaging_strategy:
+    value: ${{ steps.run.outputs.packaging_strategy }}
+  project_path:
+    value: ${{ steps.run.outputs.project_path }}
+  discovery_confidence:
+    value: ${{ steps.run.outputs.discovery_confidence }}
+  required_env_vars:
+    value: ${{ steps.run.outputs.required_env_vars }}
+  doctor_profile:
+    value: ${{ steps.run.outputs.doctor_profile }}
+  discovery_status:
+    value: ${{ steps.run.outputs.discovery_status }}
+  discovery_result_path:
+    value: ${{ steps.run.outputs.discovery_result_path }}
+  build_plan_path:
+    value: ${{ steps.run.outputs.build_plan_path }}
+  discovery_seconds:
+    value: ${{ steps.run.outputs.discovery_seconds }}
+
+runs:
+  using: composite
+  steps:
+    - name: Executar Discovery
+      id: run
+      shell: bash
+      env:
+        SOURCE: ${{ inputs.source }}
+        PROJECT_PATH: ${{ inputs.project_path }}
+        LANGUAGE: ${{ inputs.language }}
+        FRAMEWORK: ${{ inputs.framework }}
+        RUNTIME_VERSION: ${{ inputs.runtime_version }}
+        BUILD_SYSTEM: ${{ inputs.build_system }}
+        PACKAGE_MANAGER: ${{ inputs.package_manager }}
+        PACKAGING_STRATEGY: ${{ inputs.packaging_strategy }}
+        JAVA_PACKAGE_MODE: ${{ inputs.java_package_mode }}
+        RUN_TESTS: ${{ inputs.run_tests }}
+        OUTPUT_DIR: ${{ inputs.output_dir }}
+        SKIP_DISCOVERY: ${{ inputs.skip_discovery }}
+        CONFIG_FILE: ${{ inputs.config_file }}
+      run: |
+        set -euo pipefail
+        echo "::group::Veracode Build - Discovery"
+        node "$GITHUB_ACTION_PATH/index.js"
+        echo "::endgroup::"

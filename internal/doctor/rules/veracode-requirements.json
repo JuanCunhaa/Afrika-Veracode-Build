@@ -1,0 +1,106 @@
+[
+  {
+    "id": "JAVA_BYTECODE_PRESENT",
+    "language": "java",
+    "severity": "error",
+    "description": "Compiled Java artifacts must contain .class bytecode.",
+    "sourceDocumentation": "https://docs.veracode.com/r/compilation_java",
+    "lastVerified": "2026-08-07"
+  },
+  {
+    "id": "JAVA_DEBUG_INFORMATION",
+    "language": "java",
+    "severity": "warning",
+    "description": "Debug symbols improve source file and line number information. Veracode can analyze Java with or without debug.",
+    "sourceDocumentation": "https://docs.veracode.com/r/compilation_java",
+    "lastVerified": "2026-08-07"
+  },
+  {
+    "id": "JAVA_WAR_STRUCTURE",
+    "language": "java",
+    "severity": "warning",
+    "description": "WAR should include WEB-INF structure when applicable.",
+    "sourceDocumentation": "https://docs.veracode.com/r/compilation_java",
+    "lastVerified": "2026-08-07"
+  },
+  {
+    "id": "JS_SOURCE_READABLE",
+    "language": "javascript",
+    "severity": "error",
+    "description": "JavaScript must be submitted as readable source, not only minified/bundled output.",
+    "sourceDocumentation": "https://docs.veracode.com/r/compilation_jscript",
+    "lastVerified": "2026-08-07"
+  },
+  {
+    "id": "JS_NODE_MODULES_EXCLUDED",
+    "language": "javascript",
+    "severity": "warning",
+    "description": "Remove node_modules when lockfiles are present.",
+    "sourceDocumentation": "https://docs.veracode.com/r/compilation_jscript",
+    "lastVerified": "2026-08-07"
+  },
+  {
+    "id": "JS_LOCKFILE_PRESENT",
+    "language": "javascript",
+    "severity": "warning",
+    "description": "Include package.json and lockfile for SCA accuracy.",
+    "sourceDocumentation": "https://docs.veracode.com/r/compilation_jscript",
+    "lastVerified": "2026-08-07"
+  },
+  {
+    "id": "JS_SOURCEMAP_CONTENT",
+    "language": "javascript",
+    "severity": "warning",
+    "description": "MAP files must include sources and sourcesContent.",
+    "sourceDocumentation": "https://docs.veracode.com/r/compilation_jscript",
+    "lastVerified": "2026-08-07"
+  },
+  {
+    "id": "DOTNET_ASSEMBLY_PRESENT",
+    "language": "dotnet",
+    "severity": "error",
+    "description": "Upload must include compiled DLL/EXE assemblies.",
+    "sourceDocumentation": "https://docs.veracode.com/r/compilation_net",
+    "lastVerified": "2026-08-07"
+  },
+  {
+    "id": "DOTNET_PDB_RECOMMENDED",
+    "language": "dotnet",
+    "severity": "warning",
+    "description": "PDB improves filename and line information.",
+    "sourceDocumentation": "https://docs.veracode.com/r/compilation_net",
+    "lastVerified": "2026-08-07"
+  },
+  {
+    "id": "DOTNET_DEPS_JSON",
+    "language": "dotnet",
+    "severity": "warning",
+    "description": "Include deps.json or project.assets.json for accurate SCA on .NET Core/5+.",
+    "sourceDocumentation": "https://docs.veracode.com/r/compilation_net",
+    "lastVerified": "2026-08-07"
+  },
+  {
+    "id": "DOTNET_NO_TEST_ASSEMBLIES",
+    "language": "dotnet",
+    "severity": "warning",
+    "description": "Do not include test project DLLs/EXEs.",
+    "sourceDocumentation": "https://docs.veracode.com/r/compilation_net",
+    "lastVerified": "2026-08-07"
+  },
+  {
+    "id": "DOTNET_NO_SCD",
+    "language": "dotnet",
+    "severity": "error",
+    "description": "Self-Contained Deployment is not supported for Static Analysis.",
+    "sourceDocumentation": "https://docs.veracode.com/r/compilation_net",
+    "lastVerified": "2026-08-07"
+  },
+  {
+    "id": "ARTIFACT_EXISTS",
+    "language": "*",
+    "severity": "error",
+    "description": "Artifact file must exist and be non-empty.",
+    "sourceDocumentation": "https://docs.veracode.com/r/c_comp_quickref",
+    "lastVerified": "2026-08-07"
+  }
+]

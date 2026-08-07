@@ -1,0 +1,11 @@
+name: 'Doctor .NET'
+description: 'Perfil .NET do Doctor (invocado via registry central).'
+
+runs:
+  using: composite
+  steps:
+    - name: Info
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "Use internal/doctor (registry). Perfis dotnet-modern|dotnet-framework|dotnet-blazor-wasm."

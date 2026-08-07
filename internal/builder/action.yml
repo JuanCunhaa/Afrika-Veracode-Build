@@ -1,0 +1,143 @@
+name: 'Builder Registry'
+description: 'Despacha BuildPlan para o builder adequado.'
+
+inputs:
+  source:
+    required: false
+    default: '.'
+  build_plan_path:
+    required: true
+  output_dir:
+    required: false
+    default: '.veracode-build'
+  artifact_name:
+    required: false
+    default: 'analysisPack.zip'
+  use_wrapper:
+    required: false
+    default: 'true'
+  restore_dependencies:
+    required: false
+    default: 'true'
+  run_tests:
+    required: false
+    default: 'false'
+  javascript_exclude_patterns:
+    required: false
+    default: ''
+  pre_restore_command:
+    required: false
+    default: ''
+  restore_command:
+    required: false
+    default: ''
+  post_restore_command:
+    required: false
+    default: ''
+  pre_build_command:
+    required: false
+    default: ''
+  build_command:
+    required: false
+    default: ''
+  post_build_command:
+    required: false
+    default: ''
+
+outputs:
+  restore_status:
+    value: ${{ steps.maven.outputs.restore_status || steps.gradle.outputs.restore_status || steps.js.outputs.restore_status || steps.dotnet.outputs.restore_status || 'skipped' }}
+  build_status:
+    value: ${{ steps.maven.outputs.build_status || steps.gradle.outputs.build_status || steps.js.outputs.build_status || steps.dotnet.outputs.build_status || 'skipped' }}
+  artifact_path:
+    value: ${{ steps.maven.outputs.artifact_path || steps.gradle.outputs.artifact_path || steps.js.outputs.artifact_path || steps.dotnet.outputs.artifact_path }}
+  artifact_name:
+    value: ${{ steps.maven.outputs.artifact_name || steps.gradle.outputs.artifact_name || steps.js.outputs.artifact_name || steps.dotnet.outputs.artifact_name }}
+  artifact_status:
+    value: ${{ steps.maven.outputs.artifact_status || steps.gradle.outputs.artifact_status || steps.js.outputs.artifact_status || steps.dotnet.outputs.artifact_status }}
+  builder_seconds:
+    value: ${{ steps.maven.outputs.builder_seconds || steps.gradle.outputs.builder_seconds || steps.js.outputs.builder_seconds || steps.dotnet.outputs.builder_seconds }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolver builder
+      id: select
+      shell: bash
+      env:
+        BUILD_PLAN_PATH: ${{ inputs.build_plan_path }}
+      run: |
+        set -euo pipefail
+        BUILD_SYSTEM=$(node -e "const p=require(require('path').resolve(process.env.BUILD_PLAN_PATH)); process.stdout.write(String(p.buildSystem||''))")
+        LANGUAGE=$(node -e "const p=require(require('path').resolve(process.env.BUILD_PLAN_PATH)); process.stdout.write(String(p.language||''))")
+        echo "build_system=$BUILD_SYSTEM" >> "$GITHUB_OUTPUT"
+        echo "language=$LANGUAGE" >> "$GITHUB_OUTPUT"
+        echo "Builder selecionado: language=$LANGUAGE buildSystem=$BUILD_SYSTEM"
+
+    - name: Maven
+      id: maven
+      if: steps.select.outputs.build_system == 'maven'
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/builder/java-maven@v0.1.0
+      with:
+        source: ${{ inputs.source }}
+        build_plan_path: ${{ inputs.build_plan_path }}
+        output_dir: ${{ inputs.output_dir }}
+        artifact_name: ${{ inputs.artifact_name }}
+        use_wrapper: ${{ inputs.use_wrapper }}
+        restore_dependencies: ${{ inputs.restore_dependencies }}
+        run_tests: ${{ inputs.run_tests }}
+        pre_restore_command: ${{ inputs.pre_restore_command }}
+        restore_command: ${{ inputs.restore_command }}
+        post_restore_command: ${{ inputs.post_restore_command }}
+        pre_build_command: ${{ inputs.pre_build_command }}
+        build_command: ${{ inputs.build_command }}
+        post_build_command: ${{ inputs.post_build_command }}
+
+    - name: Gradle
+      id: gradle
+      if: steps.select.outputs.build_system == 'gradle'
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/builder/java-gradle@v0.1.0
+      with:
+        source: ${{ inputs.source }}
+        build_plan_path: ${{ inputs.build_plan_path }}
+        output_dir: ${{ inputs.output_dir }}
+        artifact_name: ${{ inputs.artifact_name }}
+        use_wrapper: ${{ inputs.use_wrapper }}
+        restore_dependencies: ${{ inputs.restore_dependencies }}
+        run_tests: ${{ inputs.run_tests }}
+        pre_restore_command: ${{ inputs.pre_restore_command }}
+        restore_command: ${{ inputs.restore_command }}
+        post_restore_command: ${{ inputs.post_restore_command }}
+        pre_build_command: ${{ inputs.pre_build_command }}
+        build_command: ${{ inputs.build_command }}
+        post_build_command: ${{ inputs.post_build_command }}
+
+    - name: JavaScript/TypeScript
+      id: js
+      if: steps.select.outputs.language == 'javascript' || steps.select.outputs.language == 'typescript'
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/builder/javascript@v0.1.0
+      with:
+        source: ${{ inputs.source }}
+        build_plan_path: ${{ inputs.build_plan_path }}
+        output_dir: ${{ inputs.output_dir }}
+        artifact_name: ${{ inputs.artifact_name }}
+        javascript_exclude_patterns: ${{ inputs.javascript_exclude_patterns }}
+        build_command: ${{ inputs.build_command }}
+
+    - name: .NET
+      id: dotnet
+      if: steps.select.outputs.language == 'dotnet'
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/builder/dotnet@v0.1.0
+      with:
+        source: ${{ inputs.source }}
+        build_plan_path: ${{ inputs.build_plan_path }}
+        output_dir: ${{ inputs.output_dir }}
+        artifact_name: ${{ inputs.artifact_name }}
+        restore_dependencies: ${{ inputs.restore_dependencies }}
+        pre_restore_command: ${{ inputs.pre_restore_command }}
+        restore_command: ${{ inputs.restore_command }}
+        post_restore_command: ${{ inputs.post_restore_command }}
+        pre_build_command: ${{ inputs.pre_build_command }}
+        build_command: ${{ inputs.build_command }}
+        post_build_command: ${{ inputs.post_build_command }}
+

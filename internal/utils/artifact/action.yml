@@ -1,0 +1,46 @@
+name: 'Artifact Packager'
+description: 'Empacota sources em analysisPack.zip'
+
+inputs:
+  sources:
+    description: 'Lista JSON de caminhos a empacotar'
+    required: true
+  output_dir:
+    description: 'Diretorio de saida'
+    required: false
+    default: '.veracode-build'
+  artifact_name:
+    description: 'Nome do ZIP'
+    required: false
+    default: 'analysisPack.zip'
+  mode:
+    description: 'files | directory-contents'
+    required: false
+    default: 'files'
+  exclude_names:
+    description: 'JSON array de nomes a excluir'
+    required: false
+    default: '["node_modules",".git","coverage"]'
+
+outputs:
+  artifact_path:
+    description: 'Caminho do artifact'
+    value: ${{ steps.run.outputs.artifact_path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Empacotar artifact
+      id: run
+      shell: bash
+      env:
+        SOURCES: ${{ inputs.sources }}
+        OUTPUT_DIR: ${{ inputs.output_dir }}
+        ARTIFACT_NAME: ${{ inputs.artifact_name }}
+        MODE: ${{ inputs.mode }}
+        EXCLUDE_NAMES: ${{ inputs.exclude_names }}
+      run: |
+        set -euo pipefail
+        echo "::group::Veracode Build - Packaging"
+        node "$GITHUB_ACTION_PATH/index.js"
+        echo "::endgroup::"

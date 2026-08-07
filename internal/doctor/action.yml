@@ -1,0 +1,50 @@
+name: 'Doctor'
+description: 'Preflight validator de artifact com base em requisitos publicos da Veracode.'
+
+inputs:
+  artifact_path:
+    required: true
+  build_plan_path:
+    required: false
+    default: ''
+  doctor_profile:
+    required: false
+    default: ''
+  output_dir:
+    required: false
+    default: '.veracode-build'
+  doctor_mode:
+    required: false
+    default: 'standard'
+  fail_on_doctor_warning:
+    required: false
+    default: 'false'
+
+outputs:
+  doctor_status:
+    value: ${{ steps.run.outputs.doctor_status }}
+  doctor_warnings:
+    value: ${{ steps.run.outputs.doctor_warnings }}
+  doctor_result_path:
+    value: ${{ steps.run.outputs.doctor_result_path }}
+  doctor_seconds:
+    value: ${{ steps.run.outputs.doctor_seconds }}
+
+runs:
+  using: composite
+  steps:
+    - name: Executar Doctor
+      id: run
+      shell: bash
+      env:
+        ARTIFACT_PATH: ${{ inputs.artifact_path }}
+        BUILD_PLAN_PATH: ${{ inputs.build_plan_path }}
+        DOCTOR_PROFILE: ${{ inputs.doctor_profile }}
+        OUTPUT_DIR: ${{ inputs.output_dir }}
+        DOCTOR_MODE: ${{ inputs.doctor_mode }}
+        FAIL_ON_DOCTOR_WARNING: ${{ inputs.fail_on_doctor_warning }}
+      run: |
+        set -euo pipefail
+        echo "::group::Veracode Build - Doctor"
+        node "$GITHUB_ACTION_PATH/index.js"
+        echo "::endgroup::"

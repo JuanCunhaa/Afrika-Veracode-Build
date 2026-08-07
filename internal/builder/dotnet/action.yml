@@ -1,0 +1,74 @@
+name: 'NET Builder'
+description: 'Build/publish .NET moderno, Framework, ASP.NET e Blazor WASM para Veracode.'
+
+inputs:
+  source:
+    required: false
+    default: '.'
+  build_plan_path:
+    required: true
+  output_dir:
+    required: false
+    default: '.veracode-build'
+  artifact_name:
+    required: false
+    default: 'analysisPack.zip'
+  restore_dependencies:
+    required: false
+    default: 'true'
+  pre_restore_command:
+    required: false
+    default: ''
+  restore_command:
+    required: false
+    default: ''
+  post_restore_command:
+    required: false
+    default: ''
+  pre_build_command:
+    required: false
+    default: ''
+  build_command:
+    required: false
+    default: ''
+  post_build_command:
+    required: false
+    default: ''
+
+outputs:
+  restore_status:
+    value: ${{ steps.run.outputs.restore_status }}
+  build_status:
+    value: ${{ steps.run.outputs.build_status }}
+  artifact_path:
+    value: ${{ steps.run.outputs.artifact_path }}
+  artifact_name:
+    value: ${{ steps.run.outputs.artifact_name }}
+  artifact_status:
+    value: ${{ steps.run.outputs.artifact_status }}
+  builder_seconds:
+    value: ${{ steps.run.outputs.builder_seconds }}
+
+runs:
+  using: composite
+  steps:
+    - name: .NET Builder
+      id: run
+      shell: bash
+      env:
+        SOURCE: ${{ inputs.source }}
+        BUILD_PLAN_PATH: ${{ inputs.build_plan_path }}
+        OUTPUT_DIR: ${{ inputs.output_dir }}
+        ARTIFACT_NAME: ${{ inputs.artifact_name }}
+        RESTORE_DEPENDENCIES: ${{ inputs.restore_dependencies }}
+        PRE_RESTORE_COMMAND: ${{ inputs.pre_restore_command }}
+        RESTORE_COMMAND: ${{ inputs.restore_command }}
+        POST_RESTORE_COMMAND: ${{ inputs.post_restore_command }}
+        PRE_BUILD_COMMAND: ${{ inputs.pre_build_command }}
+        BUILD_COMMAND: ${{ inputs.build_command }}
+        POST_BUILD_COMMAND: ${{ inputs.post_build_command }}
+      run: |
+        set -euo pipefail
+        echo "::group::Veracode Build - Builder"
+        node "$GITHUB_ACTION_PATH/index.js"
+        echo "::endgroup::"
