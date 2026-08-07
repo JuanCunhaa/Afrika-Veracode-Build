@@ -14,6 +14,19 @@
     "goldenDir": "tests/artifacts/dotnet"
   },
   {
+    "id": "net7-console",
+    "source": "tests/fixtures/integration/dotnet/net7-console",
+    "expectLanguage": "dotnet",
+    "expectRuntime": "net7",
+    "builder": "dotnet",
+    "expectZipEntries": [".dll"],
+    "requireDll": true,
+    "requirePdbInZip": true,
+    "requirePdb": true,
+    "requireDepsJson": true,
+    "forbidTestAssemblies": true
+  },
+  {
     "id": "net8-console",
     "source": "tests/fixtures/integration/dotnet/net8-console",
     "expectLanguage": "dotnet",
@@ -28,6 +41,32 @@
     "goldenDir": "tests/artifacts/dotnet"
   },
   {
+    "id": "net9-console",
+    "source": "tests/fixtures/integration/dotnet/net9-console",
+    "expectLanguage": "dotnet",
+    "expectRuntime": "net9",
+    "builder": "dotnet",
+    "expectZipEntries": [".dll"],
+    "requireDll": true,
+    "requirePdbInZip": true,
+    "requirePdb": true,
+    "requireDepsJson": true,
+    "forbidTestAssemblies": true
+  },
+  {
+    "id": "net10-console",
+    "source": "tests/fixtures/integration/dotnet/net10-console",
+    "expectLanguage": "dotnet",
+    "expectRuntime": "net10",
+    "builder": "dotnet",
+    "expectZipEntries": [".dll"],
+    "requireDll": true,
+    "requirePdbInZip": true,
+    "requirePdb": true,
+    "requireDepsJson": true,
+    "forbidTestAssemblies": true
+  },
+  {
     "id": "net8-webapi",
     "source": "tests/fixtures/integration/dotnet/net8-webapi",
     "expectLanguage": "dotnet",
@@ -38,6 +77,41 @@
     "requirePdbInZip": true,
     "requirePdb": true,
     "requireDepsJson": true,
+    "forbidTestAssemblies": true
+  },
+  {
+    "id": "net8-classlibrary",
+    "source": "tests/fixtures/integration/dotnet/net8-classlibrary",
+    "expectLanguage": "dotnet",
+    "expectRuntime": "net8",
+    "builder": "dotnet",
+    "expectZipEntries": [".dll"],
+    "requireDll": true,
+    "requirePdbInZip": true,
+    "requirePdb": true,
+    "requireDepsJson": true,
+    "forbidTestAssemblies": true
+  },
+  {
+    "id": "net8-aspnet-core",
+    "source": "tests/fixtures/integration/dotnet/net8-aspnet-core",
+    "expectLanguage": "dotnet",
+    "expectRuntime": "net8",
+    "builder": "dotnet",
+    "expectZipEntries": [".dll"],
+    "requireDll": true,
+    "requirePdbInZip": true,
+    "requirePdb": true,
+    "forbidTestAssemblies": true
+  },
+  {
+    "id": "net8-blazor-wasm",
+    "source": "tests/fixtures/integration/dotnet/net8-blazor-wasm",
+    "expectLanguage": "dotnet",
+    "expectRuntime": "net8",
+    "builder": "dotnet",
+    "expectZipEntries": [".dll"],
+    "requireDll": true,
     "forbidTestAssemblies": true
   },
   {

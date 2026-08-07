@@ -48,6 +48,28 @@
     "goldenDir": "tests/artifacts/java"
   },
   {
+    "id": "java25-basic",
+    "source": "tests/fixtures/integration/java/maven/java25-basic",
+    "expectLanguage": "java",
+    "expectBuildSystem": "maven",
+    "expectRuntime": "25",
+    "builder": "java-maven",
+    "expectZipEntries": [".class|.jar|.war"],
+    "requireFirstPartyBytecode": true,
+    "probeJavaDebug": true
+  },
+  {
+    "id": "java26-basic",
+    "source": "tests/fixtures/integration/java/maven/java26-basic",
+    "expectLanguage": "java",
+    "expectBuildSystem": "maven",
+    "expectRuntime": "26",
+    "builder": "java-maven",
+    "expectZipEntries": [".class|.jar|.war"],
+    "requireFirstPartyBytecode": true,
+    "probeJavaDebug": true
+  },
+  {
     "id": "war-java17",
     "source": "tests/fixtures/integration/java/maven/war-java17",
     "expectLanguage": "java",
@@ -64,6 +86,17 @@
     "expectLanguage": "java",
     "expectBuildSystem": "maven",
     "expectRuntime": "17",
+    "builder": "java-maven",
+    "expectZipEntries": [".class|.jar|.war"],
+    "requireFirstPartyBytecode": true,
+    "probeJavaDebug": true
+  },
+  {
+    "id": "springboot-java21",
+    "source": "tests/fixtures/integration/java/maven/springboot-java21",
+    "expectLanguage": "java",
+    "expectBuildSystem": "maven",
+    "expectRuntime": "21",
     "builder": "java-maven",
     "expectZipEntries": [".class|.jar|.war"],
     "requireFirstPartyBytecode": true,

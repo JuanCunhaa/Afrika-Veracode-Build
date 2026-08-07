@@ -36,6 +36,28 @@
     "requirePackageJson": true
   },
   {
+    "id": "nextjs",
+    "source": "tests/fixtures/integration/javascript/nextjs",
+    "expectLanguage": "javascript",
+    "expectBuildSystem": "npm",
+    "expectStrategy": "SOURCE_PACKAGE",
+    "builder": "javascript",
+    "expectZipEntries": ["package.json"],
+    "forbidZipEntries": ["node_modules/"],
+    "requirePackageJson": true
+  },
+  {
+    "id": "angular",
+    "source": "tests/fixtures/integration/javascript/angular",
+    "expectLanguage": "javascript",
+    "expectBuildSystem": "npm",
+    "expectStrategy": "SOURCE_PACKAGE",
+    "builder": "javascript",
+    "expectZipEntries": ["package.json"],
+    "forbidZipEntries": ["node_modules/"],
+    "requirePackageJson": true
+  },
+  {
     "id": "nestjs-yarn",
     "source": "tests/fixtures/integration/javascript/nestjs-yarn",
     "expectLanguage": "javascript",
