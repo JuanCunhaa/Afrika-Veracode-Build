@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://afrika.tech/schemas/doctor-result.schema.json",
+  "title": "DoctorResult",
+  "type": "object",
+  "required": ["status", "checks"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["READY", "READY_WITH_WARNINGS", "INVALID", "UNKNOWN"]
+    },
+    "language": { "type": "string" },
+    "artifact": { "type": "string" },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "status"],
+        "properties": {
+          "id": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["PASS", "WARN", "FAIL", "SKIP"]
+          },
+          "message": { "type": "string" }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "disclaimer": { "type": "string" }
+  },
+  "additionalProperties": true
+}

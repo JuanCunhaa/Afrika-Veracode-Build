@@ -1,0 +1,455 @@
+name: 'Afrika Veracode Build'
+description: 'Discovery, build, packaging e Doctor para artifacts Veracode-ready (sem executar scan).'
+author: 'JuanCunhaa'
+branding:
+  icon: 'package'
+  color: 'blue'
+
+inputs:
+  source:
+    description: 'Diretorio raiz do codigo-fonte.'
+    required: false
+    default: '.'
+  project_path:
+    description: 'Caminho do projeto relativo a source.'
+    required: false
+    default: '.'
+  language:
+    description: 'auto | java | javascript | typescript | dotnet'
+    required: false
+    default: 'auto'
+  framework:
+    description: 'Framework (auto ou valor explicito).'
+    required: false
+    default: 'auto'
+  runtime_version:
+    description: 'Versao de runtime (auto ou explicita).'
+    required: false
+    default: 'auto'
+  build_system:
+    description: 'auto | maven | gradle | npm | yarn | pnpm | dotnet | msbuild'
+    required: false
+    default: 'auto'
+  package_manager:
+    description: 'Package manager (auto ou explicito).'
+    required: false
+    default: 'auto'
+  packaging_strategy:
+    description: 'auto | BUILD_REQUIRED | SOURCE_PACKAGE | HYBRID | ...'
+    required: false
+    default: 'auto'
+  artifact_name:
+    description: 'Nome do artifact ZIP.'
+    required: false
+    default: 'analysisPack.zip'
+  artifact_output_dir:
+    description: 'Diretorio de saida dos artifacts.'
+    required: false
+    default: '.veracode-build'
+  artifact_path:
+    description: 'Se informado, pula Builder e executa apenas Doctor neste artifact.'
+    required: false
+    default: ''
+
+  install_toolchain:
+    description: 'Instala toolchain via setup-* quando necessario (true/false).'
+    required: false
+    default: 'true'
+  use_wrapper:
+    description: 'Prefere Maven/Gradle wrapper quando existir (true/false).'
+    required: false
+    default: 'true'
+  restore_dependencies:
+    description: 'Executa restore de dependencias (true/false).'
+    required: false
+    default: 'true'
+  run_tests:
+    description: 'Executa testes no build (true/false). Default false.'
+    required: false
+    default: 'false'
+  enable_cache:
+    description: 'Reserva para cache futuro (true/false).'
+    required: false
+    default: 'true'
+
+  pre_restore_command:
+    description: 'Comando shell antes do restore. Nao passe secrets em texto claro.'
+    required: false
+    default: ''
+  restore_command:
+    description: 'Override do restore.'
+    required: false
+    default: ''
+  post_restore_command:
+    description: 'Comando apos restore.'
+    required: false
+    default: ''
+  pre_build_command:
+    description: 'Comando antes do build.'
+    required: false
+    default: ''
+  build_command:
+    description: 'Override do build. Para JS/TS nao use production build.'
+    required: false
+    default: ''
+  post_build_command:
+    description: 'Comando apos build.'
+    required: false
+    default: ''
+
+  java_package_mode:
+    description: 'auto | compiled | source. Default compiled para Maven/Gradle. Sem fallback silencioso.'
+    required: false
+    default: 'compiled'
+  maven_settings_path:
+    description: 'Caminho opcional para settings.xml Maven.'
+    required: false
+    default: ''
+  gradle_properties_path:
+    description: 'Caminho opcional para gradle.properties.'
+    required: false
+    default: ''
+
+  javascript_exclude_patterns:
+    description: 'Padroes extras a excluir do source package JS/TS (csv/newline).'
+    required: false
+    default: ''
+
+  nuget_config_path:
+    description: 'Caminho opcional NuGet.Config.'
+    required: false
+    default: ''
+
+  required_env_vars:
+    description: 'Lista csv de nomes de env vars exigidos (nao valores).'
+    required: false
+    default: ''
+
+  doctor_mode:
+    description: 'standard | strict'
+    required: false
+    default: 'standard'
+  fail_on_doctor_warning:
+    description: 'Se true, warnings do Doctor falham o step.'
+    required: false
+    default: 'false'
+
+  config_mode:
+    description: 'auto | refresh | readonly | disabled'
+    required: false
+    default: 'auto'
+  config_org:
+    description: 'Org dona do repositorio de Build Configs.'
+    required: false
+    default: ''
+  config_repo:
+    description: 'Repositorio central de Build Configs.'
+    required: false
+    default: 'Afrika-Veracode-Build-Configs'
+  config_github_app_id:
+    description: 'GitHub App ID (preferencial).'
+    required: false
+    default: ''
+  config_github_app_private_key:
+    description: 'Private key PEM do GitHub App.'
+    required: false
+    default: ''
+  config_github_app_installation_id:
+    description: 'Installation ID do GitHub App.'
+    required: false
+    default: ''
+  config_github_token:
+    description: 'PAT fallback contents:read/write no repo de configs.'
+    required: false
+    default: ''
+
+outputs:
+  language:
+    description: 'Linguagem detectada/resolvida.'
+    value: ${{ steps.discovery.outputs.language || steps.finalize.outputs.language }}
+  framework:
+    description: 'Framework detectado/resolvido.'
+    value: ${{ steps.discovery.outputs.framework || steps.finalize.outputs.framework }}
+  runtime_version:
+    description: 'Runtime resolvido.'
+    value: ${{ steps.discovery.outputs.runtime_version || steps.finalize.outputs.runtime_version }}
+  build_system:
+    description: 'Build system resolvido.'
+    value: ${{ steps.discovery.outputs.build_system || steps.finalize.outputs.build_system }}
+  package_manager:
+    description: 'Package manager resolvido.'
+    value: ${{ steps.discovery.outputs.package_manager || steps.finalize.outputs.package_manager }}
+  packaging_strategy:
+    description: 'Estrategia de packaging.'
+    value: ${{ steps.discovery.outputs.packaging_strategy || steps.finalize.outputs.packaging_strategy }}
+  project_path:
+    description: 'Project path resolvido.'
+    value: ${{ steps.discovery.outputs.project_path || steps.finalize.outputs.project_path }}
+  restore_status:
+    description: 'Status do restore.'
+    value: ${{ steps.builder.outputs.restore_status || steps.finalize.outputs.restore_status }}
+  build_status:
+    description: 'Status do build.'
+    value: ${{ steps.builder.outputs.build_status || steps.finalize.outputs.build_status }}
+  artifact_path:
+    description: 'Caminho do artifact Veracode-ready.'
+    value: ${{ steps.finalize.outputs.artifact_path }}
+  artifact_name:
+    description: 'Nome do artifact.'
+    value: ${{ steps.finalize.outputs.artifact_name }}
+  artifact_status:
+    description: 'Status do artifact.'
+    value: ${{ steps.finalize.outputs.artifact_status }}
+  doctor_status:
+    description: 'READY | READY_WITH_WARNINGS | INVALID | UNKNOWN'
+    value: ${{ steps.doctor.outputs.doctor_status }}
+  doctor_warnings:
+    description: 'Warnings do Doctor.'
+    value: ${{ steps.doctor.outputs.doctor_warnings }}
+  config_source:
+    description: 'remote | none | local'
+    value: ${{ steps.finalize.outputs.config_source }}
+  config_status:
+    description: 'reused | created | updated | skipped | stale | disabled'
+    value: ${{ steps.finalize.outputs.config_status }}
+  config_path:
+    description: 'Path remoto do config quando aplicavel.'
+    value: ${{ steps.finalize.outputs.config_path }}
+  required_env_vars:
+    description: 'Nomes de env vars requeridos.'
+    value: ${{ steps.discovery.outputs.required_env_vars || steps.finalize.outputs.required_env_vars }}
+  discovery_confidence:
+    description: 'HIGH | MEDIUM | LOW'
+    value: ${{ steps.discovery.outputs.discovery_confidence || steps.finalize.outputs.discovery_confidence }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate Inputs
+      id: validate
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/validate-inputs@v0.1.0
+      with:
+        config_mode: ${{ inputs.config_mode }}
+        doctor_mode: ${{ inputs.doctor_mode }}
+        java_package_mode: ${{ inputs.java_package_mode }}
+        config_org: ${{ inputs.config_org }}
+        config_github_app_id: ${{ inputs.config_github_app_id }}
+        config_github_app_private_key: ${{ inputs.config_github_app_private_key }}
+        config_github_app_installation_id: ${{ inputs.config_github_app_installation_id }}
+        config_github_token: ${{ inputs.config_github_token }}
+        artifact_path: ${{ inputs.artifact_path }}
+
+    - name: Resolve Repository
+      id: resolve_repo
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/resolve-repo@v0.1.0
+
+    - name: Prepare output dir
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p "${{ inputs.artifact_output_dir }}"
+
+    - name: Config decide
+      id: config_decide
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/utils/config-store@v0.1.0
+      with:
+        command: decide
+        config_mode: ${{ inputs.config_mode }}
+
+    - name: Fetch remote Build Config
+      id: config_fetch
+      if: steps.config_decide.outputs.should_fetch == 'true' && inputs.config_org != ''
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/utils/config-store@v0.1.0
+      with:
+        command: get-config
+        config_mode: ${{ inputs.config_mode }}
+        config_org: ${{ inputs.config_org }}
+        config_repo: ${{ inputs.config_repo }}
+        config_github_app_id: ${{ inputs.config_github_app_id }}
+        config_github_app_private_key: ${{ inputs.config_github_app_private_key }}
+        config_github_app_installation_id: ${{ inputs.config_github_app_installation_id }}
+        config_github_token: ${{ inputs.config_github_token }}
+        scan_repository: ${{ steps.resolve_repo.outputs.repository_full_name }}
+        config_out_file: ${{ inputs.artifact_output_dir }}/remote-build-config.json
+
+    - name: Evaluate fingerprint
+      id: fingerprint
+      shell: bash
+      env:
+        SOURCE: ${{ inputs.source }}
+        CONFIG_FILE: ${{ inputs.artifact_output_dir }}/remote-build-config.json
+        OUTPUT_DIR: ${{ inputs.artifact_output_dir }}
+      run: |
+        set -euo pipefail
+        echo "::group::Veracode Build - Configuration"
+        if [ -f "$CONFIG_FILE" ]; then
+          node "$GITHUB_ACTION_PATH/internal/utils/config-store/index.js" evaluate
+        else
+          echo "config_usable=false" >> "$GITHUB_OUTPUT"
+          echo "config_status=missing" >> "$GITHUB_OUTPUT"
+          echo "fingerprint=" >> "$GITHUB_OUTPUT"
+        fi
+        echo "::endgroup::"
+
+    - name: Resolve skip discovery
+      id: skip
+      shell: bash
+      run: |
+        set -euo pipefail
+        FORCE="${{ steps.config_decide.outputs.force_rediscover }}"
+        USABLE="${{ steps.fingerprint.outputs.config_usable }}"
+        if [ "$FORCE" = "true" ]; then
+          echo "skip_discovery=false" >> "$GITHUB_OUTPUT"
+        elif [ "$USABLE" = "true" ]; then
+          echo "skip_discovery=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "skip_discovery=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Discovery
+      id: discovery
+      if: steps.validate.outputs.doctor_only != 'true'
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/discovery@v0.1.0
+      with:
+        source: ${{ inputs.source }}
+        project_path: ${{ inputs.project_path }}
+        language: ${{ inputs.language }}
+        framework: ${{ inputs.framework }}
+        runtime_version: ${{ inputs.runtime_version }}
+        build_system: ${{ inputs.build_system }}
+        package_manager: ${{ inputs.package_manager }}
+        packaging_strategy: ${{ inputs.packaging_strategy }}
+        java_package_mode: ${{ steps.validate.outputs.java_package_mode }}
+        run_tests: ${{ inputs.run_tests }}
+        output_dir: ${{ inputs.artifact_output_dir }}
+        skip_discovery: ${{ steps.skip.outputs.skip_discovery }}
+        config_file: ${{ inputs.artifact_output_dir }}/remote-build-config.json
+
+    - name: Setup Java toolchain
+      if: >
+        steps.validate.outputs.doctor_only != 'true' &&
+        inputs.install_toolchain == 'true' &&
+        steps.discovery.outputs.language == 'java'
+      uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+      with:
+        distribution: temurin
+        java-version: ${{ steps.discovery.outputs.runtime_version == 'auto' && '17' || steps.discovery.outputs.runtime_version }}
+
+    - name: Setup Node toolchain
+      if: >
+        steps.validate.outputs.doctor_only != 'true' &&
+        inputs.install_toolchain == 'true' &&
+        (steps.discovery.outputs.language == 'javascript' || steps.discovery.outputs.language == 'typescript')
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      with:
+        node-version: ${{ steps.discovery.outputs.runtime_version == 'auto' && '20' || steps.discovery.outputs.runtime_version }}
+
+    - name: Setup .NET toolchain
+      if: >
+        steps.validate.outputs.doctor_only != 'true' &&
+        inputs.install_toolchain == 'true' &&
+        steps.discovery.outputs.language == 'dotnet'
+      uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+      with:
+        dotnet-version: |
+          8.0.x
+          9.0.x
+
+    - name: Builder
+      id: builder
+      if: steps.validate.outputs.doctor_only != 'true'
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/builder@v0.1.0
+      with:
+        source: ${{ inputs.source }}
+        build_plan_path: ${{ inputs.artifact_output_dir }}/build-plan.json
+        output_dir: ${{ inputs.artifact_output_dir }}
+        artifact_name: ${{ inputs.artifact_name }}
+        use_wrapper: ${{ inputs.use_wrapper }}
+        restore_dependencies: ${{ inputs.restore_dependencies }}
+        run_tests: ${{ inputs.run_tests }}
+        javascript_exclude_patterns: ${{ inputs.javascript_exclude_patterns }}
+        pre_restore_command: ${{ inputs.pre_restore_command }}
+        restore_command: ${{ inputs.restore_command }}
+        post_restore_command: ${{ inputs.post_restore_command }}
+        pre_build_command: ${{ inputs.pre_build_command }}
+        build_command: ${{ inputs.build_command }}
+        post_build_command: ${{ inputs.post_build_command }}
+
+    - name: Doctor
+      id: doctor
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/doctor@v0.1.0
+      with:
+        artifact_path: ${{ inputs.artifact_path != '' && inputs.artifact_path || steps.builder.outputs.artifact_path }}
+        build_plan_path: ${{ inputs.artifact_output_dir }}/build-plan.json
+        doctor_profile: ${{ steps.discovery.outputs.doctor_profile }}
+        output_dir: ${{ inputs.artifact_output_dir }}
+        doctor_mode: ${{ inputs.doctor_mode }}
+        fail_on_doctor_warning: ${{ inputs.fail_on_doctor_warning }}
+
+    - name: Generate Build Config
+      id: gen_config
+      if: steps.validate.outputs.doctor_only != 'true' && steps.config_decide.outputs.should_save == 'true' && (steps.doctor.outputs.doctor_status == 'READY' || steps.doctor.outputs.doctor_status == 'READY_WITH_WARNINGS')
+      shell: bash
+      env:
+        SOURCE: ${{ inputs.source }}
+        BUILD_PLAN_PATH: ${{ inputs.artifact_output_dir }}/build-plan.json
+        OUTPUT_DIR: ${{ inputs.artifact_output_dir }}
+        SCAN_REPOSITORY: ${{ steps.resolve_repo.outputs.repository_full_name }}
+        GITHUB_REPOSITORY: ${{ steps.resolve_repo.outputs.repository_full_name }}
+      run: |
+        set -euo pipefail
+        echo "::group::Veracode Build - Config Store"
+        node "$GITHUB_ACTION_PATH/internal/utils/config-store/index.js" generate
+        echo "::endgroup::"
+
+    - name: Save remote Build Config
+      id: config_save
+      if: steps.validate.outputs.doctor_only != 'true' && steps.config_decide.outputs.should_save == 'true' && inputs.config_org != '' && steps.gen_config.outputs.config_file != ''
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/utils/config-store@v0.1.0
+      with:
+        command: put-config
+        config_mode: ${{ inputs.config_mode }}
+        config_org: ${{ inputs.config_org }}
+        config_repo: ${{ inputs.config_repo }}
+        config_github_app_id: ${{ inputs.config_github_app_id }}
+        config_github_app_private_key: ${{ inputs.config_github_app_private_key }}
+        config_github_app_installation_id: ${{ inputs.config_github_app_installation_id }}
+        config_github_token: ${{ inputs.config_github_token }}
+        scan_repository: ${{ steps.resolve_repo.outputs.repository_full_name }}
+        config_file: ${{ inputs.artifact_output_dir }}/build-config.json
+        config_sha: ${{ steps.config_fetch.outputs.config_sha }}
+
+    - name: Finalize outputs and summary
+      id: finalize
+      shell: bash
+      env:
+        OUTPUT_DIR: ${{ inputs.artifact_output_dir }}
+        ARTIFACT_NAME: ${{ inputs.artifact_name }}
+        ARTIFACT_PATH_INPUT: ${{ inputs.artifact_path }}
+        BUILDER_ARTIFACT: ${{ steps.builder.outputs.artifact_path }}
+        DOCTOR_STATUS: ${{ steps.doctor.outputs.doctor_status }}
+        DOCTOR_WARNINGS: ${{ steps.doctor.outputs.doctor_warnings }}
+        LANGUAGE: ${{ steps.discovery.outputs.language }}
+        FRAMEWORK: ${{ steps.discovery.outputs.framework }}
+        RUNTIME_VERSION: ${{ steps.discovery.outputs.runtime_version }}
+        BUILD_SYSTEM: ${{ steps.discovery.outputs.build_system }}
+        PACKAGE_MANAGER: ${{ steps.discovery.outputs.package_manager }}
+        PACKAGING_STRATEGY: ${{ steps.discovery.outputs.packaging_strategy }}
+        PROJECT_PATH: ${{ steps.discovery.outputs.project_path }}
+        CONFIDENCE: ${{ steps.discovery.outputs.discovery_confidence }}
+        REQUIRED_ENV: ${{ steps.discovery.outputs.required_env_vars }}
+        RESTORE_STATUS: ${{ steps.builder.outputs.restore_status }}
+        BUILD_STATUS: ${{ steps.builder.outputs.build_status }}
+        CONFIG_MODE: ${{ inputs.config_mode }}
+        CONFIG_USABLE: ${{ steps.fingerprint.outputs.config_usable }}
+        CONFIG_SAVED: ${{ steps.config_save.outputs.config_saved }}
+        CONFIG_PATH: ${{ steps.config_save.outputs.config_path || steps.config_fetch.outputs.config_path }}
+        DISCOVERY_SECONDS: ${{ steps.discovery.outputs.discovery_seconds }}
+        BUILDER_SECONDS: ${{ steps.builder.outputs.builder_seconds }}
+        DOCTOR_SECONDS: ${{ steps.doctor.outputs.doctor_seconds }}
+      run: |
+        set -euo pipefail
+        echo "::group::Veracode Build - Summary"
+        node "$GITHUB_ACTION_PATH/internal/utils/summary/finalize.js"
+        echo "::endgroup::"
+

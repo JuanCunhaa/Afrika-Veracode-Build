@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://afrika.tech/schemas/build-plan.schema.json",
+  "title": "BuildPlan",
+  "type": "object",
+  "required": ["schemaVersion", "language", "strategy", "projectPath"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "language": { "type": "string" },
+    "ecosystem": { "type": "string" },
+    "buildSystem": { "type": "string" },
+    "runtimeVersion": { "type": "string" },
+    "framework": { "type": "string" },
+    "strategy": {
+      "type": "string",
+      "enum": [
+        "BUILD_REQUIRED",
+        "SOURCE_PACKAGE",
+        "SOURCE_COMPILABLE",
+        "PREPROCESS_REQUIRED",
+        "SPECIAL_PREPARATION",
+        "HYBRID"
+      ]
+    },
+    "projectPath": { "type": "string" },
+    "projectType": { "type": "string" },
+    "packageManager": { "type": "string" },
+    "wrapper": { "type": ["string", "null"] },
+    "restoreRequired": { "type": "boolean" },
+    "runTests": { "type": "boolean" },
+    "runnerRequirements": {
+      "type": "object",
+      "properties": {
+        "os": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "dependencyManager": { "type": "string" },
+    "requiredEnvironmentVariables": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" }
+    },
+    "artifact": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string" },
+        "patterns": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "doctorProfile": { "type": "string" },
+    "confidence": {
+      "type": "string",
+      "enum": ["HIGH", "MEDIUM", "LOW"]
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "notImplemented": { "type": "boolean" }
+  },
+  "additionalProperties": true
+}

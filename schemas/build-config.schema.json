@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://afrika.tech/schemas/build-config.schema.json",
+  "title": "BuildConfig",
+  "type": "object",
+  "required": ["schemaVersion", "repository", "discovery", "builder", "fingerprint"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "repository": { "type": "string" },
+    "projectPath": { "type": "string" },
+    "discovery": { "type": "object" },
+    "builder": { "type": "object" },
+    "dependencies": {
+      "type": "object",
+      "properties": {
+        "privateRegistryDetected": { "type": "boolean" },
+        "requiredEnvironmentVariables": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" }
+        }
+      }
+    },
+    "doctor": { "type": "object" },
+    "fingerprint": {
+      "type": "object",
+      "required": ["algorithm", "value"],
+      "properties": {
+        "algorithm": { "type": "string" },
+        "value": { "type": "string" }
+      }
+    },
+    "generatedBy": { "type": "object" },
+    "updatedAt": { "type": "string" }
+  },
+  "additionalProperties": true
+}

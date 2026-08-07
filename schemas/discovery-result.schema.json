@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://afrika.tech/schemas/discovery-result.schema.json",
+  "title": "DiscoveryResult",
+  "type": "object",
+  "required": ["schemaVersion", "language", "confidence"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "language": { "type": "string" },
+    "framework": { "type": "string" },
+    "runtimeVersion": { "type": "string" },
+    "buildSystem": { "type": "string" },
+    "packageManager": { "type": "string" },
+    "projectType": { "type": "string" },
+    "projectPath": { "type": "string" },
+    "packagingStrategy": { "type": "string" },
+    "artifactCandidates": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "requiredEnvironmentVariables": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["HIGH", "MEDIUM", "LOW"]
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "ambiguous": { "type": "boolean" },
+    "candidates": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": true
+}
