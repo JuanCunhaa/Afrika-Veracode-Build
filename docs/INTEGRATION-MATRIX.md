@@ -42,13 +42,13 @@ See `docs/TEST-MATRIX.md` for Full / Release coverage.
 
 ## Fixtures present but only on Full/Release (or local)
 
-| Fixture / group | Notes |
-| --- | --- |
-| java maven/gradle 8,11,25,26; springboot-21; war; multimodule; kotlin-dsl | Full/Release (`test-matrix.json`) |
-| javascript express/react/next/angular; typescript express/next | Full/Release |
-| dotnet 6/7/9; classlib; aspnet; blazor; vb; multi-project | Full/Release (9/10/Blazor experimental) |
-| java/gradle springboot & multimodule; nestjs-typescript; azure-functions | Local/optional (not in matrix SoT yet) |
-| private-deps/\* | Stubs for mocked private registries (no credentials) |
+| Fixture / group                                                           | Notes                                                |
+| ------------------------------------------------------------------------- | ---------------------------------------------------- |
+| java maven/gradle 8,11,25,26; springboot-21; war; multimodule; kotlin-dsl | Full/Release (`test-matrix.json`)                    |
+| javascript express/react/next/angular; typescript express/next            | Full/Release                                         |
+| dotnet 6/7/9; classlib; aspnet; blazor; vb; multi-project                 | Full/Release (9/10/Blazor experimental)              |
+| java/gradle springboot & multimodule; nestjs-typescript; azure-functions  | Local/optional (not in matrix SoT yet)               |
+| private-deps/\*                                                           | Stubs for mocked private registries (no credentials) |
 
 ## Private dependency stubs
 
