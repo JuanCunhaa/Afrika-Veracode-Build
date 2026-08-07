@@ -12,6 +12,7 @@ describe('utils', () => {
     assert.ok(ERROR_CODES.NOT_IMPLEMENTED);
     assert.ok(ERROR_CODES.BUILDER_DOCTOR_CONTRACT_BROKEN);
     assert.ok(ERROR_CODES.SECRET_LEAK_DETECTED);
+    assert.ok(ERROR_CODES.FEATURE_COMPLETENESS_FAILED);
   });
 
   it('classifyDependencyError reconhece auth/network', () => {
