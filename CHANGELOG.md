@@ -12,8 +12,9 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0
 - Suíte de negative/failure tests em `tests/negative/` com assertion de error codes e status Doctor (INVALID vs READY_WITH_WARNINGS).
 - Fixtures de integration reais em `tests/fixtures/integration/` (Java Maven/Gradle, JS/TS, .NET) + runner `scripts/run-integration-fixture.js`.
 - **Builder → Doctor Contract Tests** em `tests/contract/builder-doctor/` + runner `scripts/run-builder-doctor-contract.js` (falha com `BUILDER_DOCTOR_CONTRACT_BROKEN` se Builder ok e Doctor `INVALID`); docs em `docs/BUILDER-DOCTOR-CONTRACT.md`.
-- Jobs de contract no workflow `CI` (`java-maven`, `java-gradle`, `javascript`, `typescript`, `dotnet-modern`, `dotnet-framework`) alimentando o Gate; matriz em `docs/INTEGRATION-MATRIX.md`.
-- Scripts `npm test` / `npm run test:unit` / `npm run test:negative` / `npm run test:coverage` / `npm run test:contract` via runners cross-platform e step de coverage no job Quality.
+- **Test Matrix** central em `tests/test-matrix.json` com perfis `pr` / `full` / `release` (resolve em `scripts/resolve-test-matrix.js`); shards Quality/Unit/Negative/Security/Builder-Doctor no workflow `CI`; schedule semanal full; docs em `docs/TEST-MATRIX.md`.
+- Jobs de contract no workflow `CI` alimentando o Gate; matriz em `docs/INTEGRATION-MATRIX.md` / `docs/TEST-MATRIX.md`.
+- Scripts `npm test` / `npm run test:unit` / `npm run test:negative` / `npm run test:coverage` / `npm run test:contract` / `npm run test:matrix`.
 
 ### Changed
 
