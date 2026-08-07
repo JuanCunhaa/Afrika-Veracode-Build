@@ -128,6 +128,10 @@ jobs:
 
   gate:
     name: Gate
+    # Fonte de verdade do CI. Todo job de check NOVO deve:
+    # 1) entrar em needs abaixo
+    # 2) ter needs.<id>.result validado no step
+    # Jobs pos-gate (ex.: release) usam needs: [gate] apenas.
     runs-on: ubuntu-latest
     needs: [quality, js-source, java-maven, dotnet-modern]
     if: always()
