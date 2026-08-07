@@ -8,8 +8,9 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test tests/unit/*.test.js",
-    "test:unit": "node --test tests/unit/*.test.js",
+    "test": "node scripts/run-unit-tests.js",
+    "test:unit": "node scripts/run-unit-tests.js",
+    "test:coverage": "node scripts/run-unit-tests.js --coverage",
     "check:action-pinning": "node tests/security/check-action-pinning.js",
     "pr": "npm run check:action-pinning",
     "version:bump": "node scripts/bump-version.js",

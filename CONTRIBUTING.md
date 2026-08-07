@@ -6,8 +6,15 @@ Este projeto e proprietario. Contribuicoes externas requerem autorizacao previa 
 
 1. Use Node.js 20+.
 2. Instale dependencias de desenvolvimento: `npm ci`.
-3. Execute testes: `npm test`.
-4. Execute lint/format: `npm run lint` e `npm run format:check`.
+3. Execute testes unitarios: `npm test`.
+4. (Opcional) Coverage: `npm run test:coverage`.
+5. Execute lint/format: `npm run lint` e `npm run format:check`.
+
+## Unit tests
+
+- Local: `tests/unit/**` + fixtures em `tests/fixtures/unit/`.
+- Escopo: Discovery, BuildPlan, Fingerprint, Config, Sanitize, Doctor rules (sem builds reais).
+- CI: job Quality em `.github/workflows/ci.yml` (nao ha `quality.yml` separado); Gate e a fonte de verdade.
 
 ## Regras
 

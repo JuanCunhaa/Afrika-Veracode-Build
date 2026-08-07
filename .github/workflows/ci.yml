@@ -34,6 +34,9 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: Unit test coverage
+        run: npm run test:coverage
+
       - name: Action SHA pinning
         run: npm run pr
 

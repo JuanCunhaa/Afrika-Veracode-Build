@@ -196,6 +196,22 @@ jobs:
     veracode_api_key: ${{ secrets.VERACODE_API_KEY }}
 ```
 
+## Development / Unit Tests
+
+Requisitos: Node.js 20+.
+
+```bash
+npm ci
+npm test                 # suíte unitária (node:test)
+npm run test:coverage    # coverage statement/branch (experimental)
+npm run lint
+npm run format:check
+```
+
+Os unit tests vivem em `tests/unit/` (discovery, build-plan, doctor, fingerprint, config, sanitize, utils) com fixtures em `tests/fixtures/unit/`. Sao rapidos, determinísticos e **nao** chamam a Veracode, registries externos nem credentials reais.
+
+No CI, a suíte roda no job **Quality** do workflow unico [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (PR e push em `main`), e o veredito final e o job **Gate**.
+
 ## Security
 
 - Least privilege: consumidores tipicos com `contents: read`
