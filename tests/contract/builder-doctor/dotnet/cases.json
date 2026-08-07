@@ -1,0 +1,78 @@
+[
+  {
+    "id": "net6-console",
+    "source": "tests/fixtures/integration/dotnet/net6-console",
+    "expectLanguage": "dotnet",
+    "expectRuntime": "net6",
+    "builder": "dotnet",
+    "expectZipEntries": [".dll"],
+    "requireDll": true,
+    "requirePdbInZip": true,
+    "requirePdb": true,
+    "requireDepsJson": true,
+    "forbidTestAssemblies": true,
+    "goldenDir": "tests/artifacts/dotnet"
+  },
+  {
+    "id": "net8-console",
+    "source": "tests/fixtures/integration/dotnet/net8-console",
+    "expectLanguage": "dotnet",
+    "expectRuntime": "net8",
+    "builder": "dotnet",
+    "expectZipEntries": [".dll"],
+    "requireDll": true,
+    "requirePdbInZip": true,
+    "requirePdb": true,
+    "requireDepsJson": true,
+    "forbidTestAssemblies": true,
+    "goldenDir": "tests/artifacts/dotnet"
+  },
+  {
+    "id": "net8-webapi",
+    "source": "tests/fixtures/integration/dotnet/net8-webapi",
+    "expectLanguage": "dotnet",
+    "expectRuntime": "net8",
+    "builder": "dotnet",
+    "expectZipEntries": [".dll"],
+    "requireDll": true,
+    "requirePdbInZip": true,
+    "requirePdb": true,
+    "requireDepsJson": true,
+    "forbidTestAssemblies": true
+  },
+  {
+    "id": "vbnet",
+    "source": "tests/fixtures/integration/dotnet/vbnet",
+    "expectLanguage": "dotnet",
+    "expectRuntime": "net8",
+    "builder": "dotnet",
+    "expectZipEntries": [".dll"],
+    "requireDll": true,
+    "requirePdbInZip": true,
+    "requirePdb": true,
+    "forbidTestAssemblies": true
+  },
+  {
+    "id": "multi-project-solution",
+    "source": "tests/fixtures/integration/dotnet/multi-project-solution",
+    "expectLanguage": "dotnet",
+    "expectRuntime": "net8",
+    "builder": "dotnet",
+    "expectZipEntries": [".dll"],
+    "requireDll": true,
+    "requirePdbInZip": true,
+    "requirePdb": true,
+    "forbidTestAssemblies": true
+  },
+  {
+    "id": "net48",
+    "source": "tests/fixtures/integration/dotnet/net48",
+    "expectLanguage": "dotnet",
+    "expectRuntime": "net48",
+    "builder": "dotnet",
+    "expectZipEntries": [".dll|.exe"],
+    "requireDll": false,
+    "platforms": ["win32"],
+    "forbidTestAssemblies": true
+  }
+]
