@@ -3,11 +3,15 @@
 Last updated: 2026-08-07
 
 Integration fixtures live under `tests/fixtures/integration/`.
-CI jobs run inside the single workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) and feed the **Gate** (there is no separate `integration.yml` — see `.cursor/rules/ci-gate.mdc`).
+CI jobs run the **Builder → Doctor contract** runner ([`docs/BUILDER-DOCTOR-CONTRACT.md`](BUILDER-DOCTOR-CONTRACT.md)) inside [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) and feed the **Gate** (there is no separate `integration.yml` — see `.cursor/rules/ci-gate.mdc`).
 
-Local runner:
+Local runners:
 
 ```bash
+# Contract (preferred — Gate jobs)
+node scripts/run-builder-doctor-contract.js --family java-maven --case java17-basic
+
+# Lower-level integration helper (still available)
 node scripts/run-integration-fixture.js \
   --source tests/fixtures/integration/java/maven/java17-basic \
   --expect-language java \
@@ -17,7 +21,7 @@ node scripts/run-integration-fixture.js \
   --expect-zip-entry '.class'
 ```
 
-## Executed in CI (Gate)
+## Executed in CI (Gate) — Builder → Doctor Contract
 
 Only rows below are claimed as verified when the Gate is green.
 
