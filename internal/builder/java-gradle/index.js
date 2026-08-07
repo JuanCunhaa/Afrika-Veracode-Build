@@ -6,8 +6,8 @@ const os = require('os');
 const { spawnSync } = require('child_process');
 const { resolveArtifactPatterns, createZip } = require('../../utils/artifact/artifact');
 const { setOutputs, readJson, envStr, envBool, ensureDir, timingNow, timingMs } = require('../../utils/common/io');
-const { fail, ERROR_CODES, classifyDependencyError } = require('../../utils/errors/errors');
-const { sanitizeLog } = require('../../utils/sanitize/sanitize');
+const { fail, ERROR_CODES, classifyDependencyError, logCaughtError } = require('../../utils/errors/errors');
+const { sanitizeText, sanitizeCommand, registerSecretsFromEnv } = require('../../utils/sanitize/sanitize');
 
 const INIT_SCRIPT = `
 allprojects {
@@ -37,16 +37,16 @@ function withGradleInitScript(fn) {
 }
 
 function run(cmd, args, opts = {}) {
-  console.log(`$ ${cmd} ${args.join(' ')}`);
+  console.log(sanitizeCommand(cmd, args));
   const res = spawnSync(cmd, args, {
     cwd: opts.cwd,
     env: opts.env || process.env,
     encoding: 'utf8',
     shell: opts.shell || false
   });
-  const out = `${res.stdout || ''}\n${res.stderr || ''}`;
+  const out = sanitizeText(`${res.stdout || ''}\n${res.stderr || ''}`);
   if (res.status !== 0) {
-    const err = new Error(sanitizeLog(out.slice(-4000) || `exit ${res.status}`));
+    const err = new Error(sanitizeText(out.slice(-4000) || `exit ${res.status}`));
     err.output = out;
     throw err;
   }
@@ -60,6 +60,7 @@ function runHook(command, cwd) {
 }
 
 function main() {
+  registerSecretsFromEnv();
   const start = timingNow();
   const plan = readJson(envStr('BUILD_PLAN_PATH', '.veracode-build/build-plan.json'));
   const source = path.resolve(envStr('SOURCE', '.'));
@@ -119,7 +120,7 @@ function main() {
     } catch (err) {
       fail(ERROR_CODES.BUILD_FAILED, 'Build Gradle falhou.', {
         stage: 'Builder',
-        detected: sanitizeLog((err.output || err.message || '').slice(-1500))
+        detected: sanitizeText((err.output || err.message || '').slice(-1500))
       });
     }
     runHook(envStr('POST_BUILD_COMMAND'), projectPath);
@@ -151,7 +152,7 @@ if (require.main === module) {
   try {
     main();
   } catch (err) {
-    console.error(`::error::${err.message || err}`);
+    logCaughtError(err);
     process.exit(1);
   }
 }

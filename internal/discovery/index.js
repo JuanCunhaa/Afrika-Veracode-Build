@@ -13,8 +13,11 @@ const {
   timingMs,
   readJson
 } = require('../utils/common/io');
+const { logCaughtError } = require('../utils/errors/errors');
+const { registerSecretsFromEnv } = require('../utils/sanitize/sanitize');
 
 function main() {
+  registerSecretsFromEnv();
   const start = timingNow();
   const source = path.resolve(envStr('SOURCE', '.'));
   const projectPath = envStr('PROJECT_PATH', '.');
@@ -91,7 +94,7 @@ if (require.main === module) {
   try {
     main();
   } catch (err) {
-    console.error(`::error::${err.message || err}`);
+    logCaughtError(err);
     process.exit(1);
   }
 }

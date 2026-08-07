@@ -4,13 +4,15 @@ const fs = require('fs');
 const path = require('path');
 const { zipDirectoryContents } = require('../../utils/artifact/artifact');
 const { setOutputs, readJson, envStr, ensureDir, timingNow, timingMs } = require('../../utils/common/io');
-const { fail, ERROR_CODES } = require('../../utils/errors/errors');
+const { fail, ERROR_CODES, logCaughtError } = require('../../utils/errors/errors');
+const { registerSecretsFromEnv } = require('../../utils/sanitize/sanitize');
 
 /**
  * JavaScript/TypeScript SOURCE_PACKAGE builder.
  * Nao executa production build / minify / bundle.
  */
 function main() {
+  registerSecretsFromEnv();
   const start = timingNow();
   const plan = readJson(envStr('BUILD_PLAN_PATH', '.veracode-build/build-plan.json'));
   const source = path.resolve(envStr('SOURCE', '.'));
@@ -89,7 +91,7 @@ if (require.main === module) {
   try {
     main();
   } catch (err) {
-    console.error(`::error::${err.message || err}`);
+    logCaughtError(err);
     process.exit(1);
   }
 }
