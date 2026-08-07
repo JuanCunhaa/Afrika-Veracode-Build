@@ -55,60 +55,205 @@ jobs:
           pip install yamllint==1.37.1
           yamllint -d "{extends: relaxed, rules: {line-length: {max: 200}}}" action.yml internal .github/workflows
 
-  js-source:
-    name: Integration / JS
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: '20'
-      - name: Discovery + JS package + Doctor
-        run: |
-          set -euo pipefail
-          mkdir -p .veracode-build
-          export SOURCE=tests/fixtures/javascript
-          export PROJECT_PATH=.
-          export OUTPUT_DIR=.veracode-build
-          export LANGUAGE=javascript
-          export CONFIG_MODE=disabled
-          node internal/discovery/index.js
-          export BUILD_PLAN_PATH=.veracode-build/build-plan.json
-          export ARTIFACT_NAME=analysisPack.zip
-          node internal/builder/javascript/index.js
-          export ARTIFACT_PATH=.veracode-build/analysisPack.zip
-          export DOCTOR_MODE=standard
-          node internal/doctor/index.js
-
   java-maven:
-    name: Integration / Java Maven
+    name: Integration / Java Maven (${{ matrix.fixture }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - fixture: java8-basic
+            java: '8'
+            runtime: '8'
+          - fixture: java11-basic
+            java: '11'
+            runtime: '11'
+          - fixture: java17-basic
+            java: '17'
+            runtime: '17'
+          - fixture: java21-basic
+            java: '21'
+            runtime: '21'
+          - fixture: war-java17
+            java: '17'
+            runtime: '17'
+            zip_entry: '.war|.class'
+          - fixture: springboot-java17
+            java: '17'
+            runtime: '17'
+          - fixture: multimodule-java17
+            java: '17'
+            runtime: '17'
+            project_path: core
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: ${{ matrix.java }}
+          cache: maven
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
-      - name: Maven build packaging
+      - name: Discovery + Maven build + Doctor
         run: |
           set -euo pipefail
-          mkdir -p .veracode-build
-          export SOURCE=tests/fixtures/java-maven
-          export OUTPUT_DIR=.veracode-build
-          node internal/discovery/index.js
-          export BUILD_PLAN_PATH=.veracode-build/build-plan.json
-          export RESTORE_DEPENDENCIES=true
-          export RUN_TESTS=false
-          node internal/builder/java-maven/index.js
-          export ARTIFACT_PATH=.veracode-build/analysisPack.zip
-          node internal/doctor/index.js
+          EXTRA=()
+          if [ -n "${{ matrix.project_path }}" ]; then
+            EXTRA+=(--project-path "${{ matrix.project_path }}")
+          fi
+          ZIP_ENTRY='.class|.jar|.war'
+          if [ -n "${{ matrix.zip_entry }}" ]; then
+            ZIP_ENTRY='${{ matrix.zip_entry }}'
+          fi
+          node scripts/run-integration-fixture.js \
+            --source "tests/fixtures/integration/java/maven/${{ matrix.fixture }}" \
+            --expect-language java \
+            --expect-build-system maven \
+            --expect-runtime "${{ matrix.runtime }}" \
+            --builder java-maven \
+            --expect-zip-entry "$ZIP_ENTRY" \
+            "${EXTRA[@]}"
+
+  java-gradle:
+    name: Integration / Java Gradle (${{ matrix.fixture }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - fixture: java17-basic
+            java: '17'
+            runtime: '17'
+          - fixture: java21-basic
+            java: '21'
+            runtime: '21'
+          - fixture: kotlin-dsl-java17
+            java: '17'
+            runtime: '17'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+      - uses: gradle/actions/setup-gradle@0bdd871935719febd78681f197cd39af5b6e16a6 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+      - name: Discovery + Gradle build + Doctor
+        env:
+          USE_WRAPPER: 'false'
+        run: |
+          set -euo pipefail
+          node scripts/run-integration-fixture.js \
+            --source "tests/fixtures/integration/java/gradle/${{ matrix.fixture }}" \
+            --expect-language java \
+            --expect-build-system gradle \
+            --expect-runtime "${{ matrix.runtime }}" \
+            --builder java-gradle \
+            --expect-zip-entry '.class|.jar'
+
+  javascript:
+    name: Integration / JS (${{ matrix.fixture }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - fixture: vanilla-node
+            pkg: npm
+          - fixture: express
+            pkg: npm
+          - fixture: react
+            pkg: npm
+          - fixture: nestjs-yarn
+            pkg: yarn
+          - fixture: vue-pnpm
+            pkg: pnpm
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+      - name: Discovery + SOURCE_PACKAGE + Doctor
+        run: |
+          set -euo pipefail
+          node scripts/run-integration-fixture.js \
+            --source "tests/fixtures/integration/javascript/${{ matrix.fixture }}" \
+            --expect-language javascript \
+            --expect-build-system "${{ matrix.pkg }}" \
+            --expect-strategy SOURCE_PACKAGE \
+            --builder javascript \
+            --expect-zip-entry 'package.json' \
+            --forbid-zip-entry 'node_modules/'
+
+  typescript:
+    name: Integration / TS (${{ matrix.fixture }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        fixture: [node-typescript, express-typescript, react-typescript]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+      - name: Discovery + SOURCE_PACKAGE + Doctor
+        run: |
+          set -euo pipefail
+          node scripts/run-integration-fixture.js \
+            --source "tests/fixtures/integration/typescript/${{ matrix.fixture }}" \
+            --expect-language typescript \
+            --expect-strategy SOURCE_PACKAGE \
+            --builder javascript \
+            --expect-zip-entry '.ts' \
+            --forbid-zip-entry 'node_modules/'
 
   dotnet-modern:
-    name: Integration / .NET
+    name: Integration / .NET (${{ matrix.fixture }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - fixture: net6-console
+            sdk: '6.0.x'
+            runtime: 'net6'
+          - fixture: net8-console
+            sdk: '8.0.x'
+            runtime: 'net8'
+          - fixture: net8-webapi
+            sdk: '8.0.x'
+            runtime: 'net8'
+          - fixture: vbnet
+            sdk: '8.0.x'
+            runtime: 'net8'
+          - fixture: multi-project-solution
+            sdk: '8.0.x'
+            runtime: 'net8'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: ${{ matrix.sdk }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+      - name: Discovery + dotnet build + Doctor
+        run: |
+          set -euo pipefail
+          node scripts/run-integration-fixture.js \
+            --source "tests/fixtures/integration/dotnet/${{ matrix.fixture }}" \
+            --expect-language dotnet \
+            --expect-runtime "${{ matrix.runtime }}" \
+            --builder dotnet \
+            --expect-zip-entry '.dll'
+
+  dotnet-framework:
+    name: Integration / .NET Framework (net48)
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
@@ -117,17 +262,16 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '20'
-      - name: dotnet publish packaging
+      - name: Discovery + net48 build + Doctor
+        shell: bash
         run: |
           set -euo pipefail
-          mkdir -p .veracode-build
-          export SOURCE=tests/fixtures/dotnet-modern
-          export OUTPUT_DIR=.veracode-build
-          node internal/discovery/index.js
-          export BUILD_PLAN_PATH=.veracode-build/build-plan.json
-          node internal/builder/dotnet/index.js
-          export ARTIFACT_PATH=.veracode-build/analysisPack.zip
-          node internal/doctor/index.js
+          node scripts/run-integration-fixture.js \
+            --source tests/fixtures/integration/dotnet/net48 \
+            --expect-language dotnet \
+            --expect-runtime net48 \
+            --builder dotnet \
+            --expect-zip-entry '.dll|.exe'
 
   gate:
     name: Gate
@@ -136,23 +280,38 @@ jobs:
     # 2) ter needs.<id>.result validado no step
     # Jobs pos-gate (ex.: release) usam needs: [gate] apenas.
     runs-on: ubuntu-latest
-    needs: [quality, js-source, java-maven, dotnet-modern]
+    needs:
+      [
+        quality,
+        java-maven,
+        java-gradle,
+        javascript,
+        typescript,
+        dotnet-modern,
+        dotnet-framework
+      ]
     if: always()
     steps:
       - name: Require all parallel jobs green
         run: |
           set -euo pipefail
           echo "quality=${{ needs.quality.result }}"
-          echo "js-source=${{ needs.js-source.result }}"
           echo "java-maven=${{ needs.java-maven.result }}"
+          echo "java-gradle=${{ needs.java-gradle.result }}"
+          echo "javascript=${{ needs.javascript.result }}"
+          echo "typescript=${{ needs.typescript.result }}"
           echo "dotnet-modern=${{ needs.dotnet-modern.result }}"
+          echo "dotnet-framework=${{ needs.dotnet-framework.result }}"
 
           failed=0
           for result in \
             "${{ needs.quality.result }}" \
-            "${{ needs.js-source.result }}" \
             "${{ needs.java-maven.result }}" \
-            "${{ needs.dotnet-modern.result }}"
+            "${{ needs.java-gradle.result }}" \
+            "${{ needs.javascript.result }}" \
+            "${{ needs.typescript.result }}" \
+            "${{ needs.dotnet-modern.result }}" \
+            "${{ needs.dotnet-framework.result }}"
           do
             if [ "$result" != "success" ]; then
               failed=1
