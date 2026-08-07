@@ -1,0 +1,18 @@
+{
+  "root": true,
+  "env": {
+    "es2022": true,
+    "node": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "script"
+  },
+  "extends": ["eslint:recommended"],
+  "ignorePatterns": ["node_modules/", ".veracode-build/", "tests/fixtures/"],
+  "rules": {
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "caughtErrors": "none" }],
+    "no-console": "off",
+    "eqeqeq": ["error", "smart"]
+  }
+}

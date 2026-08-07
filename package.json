@@ -1,0 +1,24 @@
+{
+  "name": "afrika-veracode-build",
+  "version": "0.1.0",
+  "description": "GitHub Action para discovery, build, packaging e validação de artifacts Veracode-ready",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test tests/unit/*.test.js",
+    "test:unit": "node --test tests/unit/*.test.js",
+    "check:action-pinning": "node tests/security/check-action-pinning.js",
+    "pr": "npm run check:action-pinning",
+    "version:bump": "node scripts/bump-version.js",
+    "lint": "eslint \"internal/**/*.js\" \"tests/**/*.js\" \"scripts/**/*.js\"",
+    "format": "prettier --write \"internal/**/*.js\" \"tests/**/*.js\" \"scripts/**/*.js\" \"schemas/**/*.json\" \"*.md\" \"docs/**/*.md\"",
+    "format:check": "prettier --check \"internal/**/*.js\" \"tests/**/*.js\" \"scripts/**/*.js\" \"schemas/**/*.json\" \"*.md\" \"docs/**/*.md\""
+  },
+  "devDependencies": {
+    "eslint": "8.57.1",
+    "prettier": "3.6.2"
+  }
+}

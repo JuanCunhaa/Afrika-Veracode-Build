@@ -1,0 +1,7 @@
+node_modules/
+.veracode-build/
+.build-config-github-token
+.baseline-github-token
+*.log
+.DS_Store
+coverage/
