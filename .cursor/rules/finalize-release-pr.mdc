@@ -1,11 +1,11 @@
 ---
-description: Ao finalizar mudancas — bump semver, commits por modulo, branch, push e PR para main
+description: Ao finalizar mudancas — bump semver, commits por modulo, branch, push, PR e gate de CI verde
 alwaysApply: true
 ---
 
-# Finalize → bump → branch → commits → PR
+# Finalize → bump → branch → commits → PR → CI verde
 
-Quando uma tarefa/modificacao pedida pelo usuario estiver **concluida** (codigo pronto, checks ok), execute este fluxo **sem esperar novo pedido** de commit/PR — esta regra autoriza.
+Quando uma tarefa/modificacao pedida pelo usuario estiver **concluida** (codigo pronto), execute este fluxo **sem esperar novo pedido** de commit/PR — esta regra autoriza.
 
 Nao rode o fluxo em perguntas exploratorias, refactors parciais a meio, ou se o usuario pediu explicitamente para nao versionar/abrir PR.
 
@@ -26,6 +26,9 @@ Rode de forma nao-interativa:
 ```bash
 npm run version:bump -- patch   # ou minor | major
 npm run pr
+npm run format:check
+npm run lint
+npm test
 ```
 
 Atualize `CHANGELOG.md` na mesma leva (secao da nova versao).
@@ -52,13 +55,7 @@ Slug: kebab-case, sem espacos (ex.: `feat/action-pinning-check`).
 5. Tooling (`scripts/`, `.cursor/rules/`, eslint/prettier)
 6. **Por ultimo:** bump (`package.json`, `package-lock.json`, uses `@vX.Y.Z`, `CHANGELOG.md`)
 
-Mensagens: imperativo, foco no *porquê*; prefixo do modulo ajuda:
-
-- `fix(doctor): …`
-- `feat(discovery): …`
-- `chore(ci): …`
-- `docs: …`
-- `chore(release): bump to vX.Y.Z`
+Mensagens: imperativo, foco no *porquê*; prefixo do modulo ajuda (`fix(doctor):`, `feat(discovery):`, `chore(ci):`, `docs:`, `chore(release): bump to vX.Y.Z`).
 
 Siga o protocolo de commit do usuario (status/diff/log, HEREDOC, sem secrets, sem amend indevido, sem `--no-verify`).
 
@@ -66,26 +63,33 @@ Siga o protocolo de commit do usuario (status/diff/log, HEREDOC, sem secrets, se
 
 ```bash
 git push -u origin HEAD
-gh pr create --base main --title "…" --body "$(cat <<'EOF'
-## Summary
-- …
-
-## Bump
-- vA.B.C → vX.Y.Z (patch|minor|major): motivo
-
-## Test plan
-- [ ] npm run pr
-- [ ] npm test
-- [ ] …
-EOF
-)"
+gh pr create --base main --title "…" --body "…"
 ```
 
 Devolva a URL do PR ao usuario.
 
-## 5. Nao fazer
+## 5. Gate obrigatorio: CI 100% verde
+
+**Nao considere a tarefa finalizada** ate Quality (e demais checks do PR/push) estarem **todos verdes**.
+
+1. Acompanhe com `gh pr checks` / `gh run watch` / `gh run list`.
+2. Se **qualquer** job/step falhar:
+   - diagnostique o log (`gh run view <id> --log-failed`)
+   - corrija **apenas codigo/config** necessario
+   - commit + push de correcao
+   - **nao** rode `version:bump`
+   - **nao** altere `CHANGELOG.md`
+   - **nao** mude tag/release por causa do hotfix de CI
+   - repita ate 100% passar
+3. So depois do CI verde encerre a tarefa e informe o resultado ao usuario.
+
+Correcoes de CI sao commits `fix(ci): …` / `chore(ci): …` / `style: …` conforme o caso.
+
+## 6. Nao fazer
 
 - Commit unico gigante misturando modulos
 - Bump X “por precaução”
 - Push/PR se nao ha mudancas reais
-- Pular `npm run pr` depois do bump
+- Pular `npm run pr` / format / lint / test locais antes do push
+- Declarar concluido com CI vermelho ou ainda rodando
+- Bump ou CHANGELOG em loops de correcao de CI
