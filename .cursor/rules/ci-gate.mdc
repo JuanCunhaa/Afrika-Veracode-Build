@@ -1,0 +1,38 @@
+---
+description: CI Gate e a unica fonte de verdade; todo job novo deve entrar no Gate
+globs: ".github/workflows/**"
+alwaysApply: true
+---
+
+# CI Gate — fonte de verdade
+
+Workflow unico: `.github/workflows/ci.yml` (nome **CI**).
+
+## Como saber se o CI passou
+
+**Sempre** baseie-se **somente** no job **Gate**:
+
+- Gate `success` → CI passou
+- Gate `failure` / `cancelled` / ausente → CI nao passou
+- Ignore como veredito final: checks externos (SonarCloud, bots Cursor, etc.), jobs paralelos isolados, ou “o workflow aparece verde no meio”
+
+Comandos uteis:
+
+```bash
+gh run view <id> --json jobs --jq '.jobs[] | select(.name=="Gate") | {name,conclusion}'
+# ou
+gh run watch <id>   # espere Gate success
+```
+
+## Ao adicionar qualquer coisa na esteira
+
+Todo job de verificacao novo **obrigatoriamente**:
+
+1. Entra em `ci.yml` (nao criar workflow separado)
+2. Roda em paralelo com os demais checks (sem `needs` entre eles, salvo dependencia real de artefato)
+3. E listado em `gate.needs: [...]`
+4. Tem o resultado checado no step do Gate (`needs.<job>.result == success`)
+
+**Release** (e jobs pos-gate) so usam `needs: [gate]` — nunca bypassam o Gate.
+
+Proibido: esteira/job que “passa sozinho” sem alimentar o Gate; segundo workflow de quality/integration; declarar CI ok sem Gate verde.
