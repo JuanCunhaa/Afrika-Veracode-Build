@@ -9,11 +9,13 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0
 ### Added
 
 - Suíte unitária expandida em `tests/unit/` (Discovery, BuildPlan, Doctor, Fingerprint, Config, Sanitize, Utils) com fixtures em `tests/fixtures/unit/`.
-- Scripts `npm test` / `npm run test:coverage` via runner cross-platform e step de coverage no job Quality.
+- Suíte de negative/failure tests em `tests/negative/` com assertion de error codes e status Doctor (INVALID vs READY_WITH_WARNINGS).
+- Scripts `npm test` / `npm run test:unit` / `npm run test:negative` / `npm run test:coverage` via runner cross-platform e step de coverage no job Quality.
 
 ### Changed
 
 - Detector Gradle reconhece `JavaLanguageVersion.of(N)` tambem em forma Kotlin DSL (`languageVersion.set`).
+- Sanitize nunca persiste valores string sob chaves secret-like (ex.: `NUGET_TOKEN`), mesmo quando o valor parece um nome `UPPER_SNAKE`.
 
 ## [0.1.2] - 2026-08-07
 

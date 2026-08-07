@@ -6,13 +6,14 @@ Este projeto e proprietario. Contribuicoes externas requerem autorizacao previa 
 
 1. Use Node.js 20+.
 2. Instale dependencias de desenvolvimento: `npm ci`.
-3. Execute testes unitarios: `npm test`.
-4. (Opcional) Coverage: `npm run test:coverage`.
+3. Execute testes: `npm test` (unit + negative).
+4. (Opcional) Coverage: `npm run test:coverage`. Suites isoladas: `npm run test:unit`, `npm run test:negative`.
 5. Execute lint/format: `npm run lint` e `npm run format:check`.
 
-## Unit tests
+## Unit / negative tests
 
-- Local: `tests/unit/**` + fixtures em `tests/fixtures/unit/`.
+- Unit: `tests/unit/**` + fixtures em `tests/fixtures/unit/`.
+- Negative: `tests/negative/**` — falhas esperadas com assertion de error code (nao apenas exit != 0).
 - Escopo: Discovery, BuildPlan, Fingerprint, Config, Sanitize, Doctor rules (sem builds reais).
 - CI: job Quality em `.github/workflows/ci.yml` (nao ha `quality.yml` separado); Gate e a fonte de verdade.
 
