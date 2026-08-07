@@ -15,6 +15,7 @@
     "test:integration": "node scripts/run-integration-fixture.js",
     "test:contract": "node scripts/run-builder-doctor-contract.js",
     "test:matrix": "node scripts/resolve-test-matrix.js --print-table --print-support",
+    "test:secret-leak": "node scripts/run-unit-tests.js --root tests/security/secret-leak",
     "fixtures:integration": "node scripts/generate-integration-fixtures.js",
     "check:action-pinning": "node tests/security/check-action-pinning.js",
     "pr": "npm run check:action-pinning",

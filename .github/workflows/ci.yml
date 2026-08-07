@@ -133,6 +133,25 @@ jobs:
           END=$(date +%s)
           node scripts/ci-job-report.js --tech Security --version - --scenario action-pinning --result PASS --seconds $((END-START)) --job security
 
+  secret-leak:
+    name: Secret leak
+    needs: [resolve]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Secret zero-leak suite
+        run: |
+          set -euo pipefail
+          START=$(date +%s)
+          npm run test:secret-leak
+          END=$(date +%s)
+          node scripts/ci-job-report.js --tech Security --version - --scenario secret-zero-leak --result PASS --seconds $((END-START)) --job secret-leak
+
   java-maven:
     name: Builder-Doctor / Java Maven (${{ matrix.case }})
     needs: [resolve]
@@ -418,6 +437,7 @@ jobs:
         unit,
         negative,
         security,
+        secret-leak,
         java-maven,
         java-gradle,
         javascript,
@@ -441,6 +461,7 @@ jobs:
           echo "unit=${{ needs.unit.result }}"
           echo "negative=${{ needs.negative.result }}"
           echo "security=${{ needs.security.result }}"
+          echo "secret-leak=${{ needs.secret-leak.result }}"
           echo "java-maven=${{ needs.java-maven.result }}"
           echo "java-gradle=${{ needs.java-gradle.result }}"
           echo "javascript=${{ needs.javascript.result }}"
@@ -454,6 +475,7 @@ jobs:
             "${{ needs.unit.result }}" \
             "${{ needs.negative.result }}" \
             "${{ needs.security.result }}" \
+            "${{ needs.secret-leak.result }}" \
             "${{ needs.java-maven.result }}" \
             "${{ needs.java-gradle.result }}" \
             "${{ needs.javascript.result }}" \
@@ -481,6 +503,7 @@ jobs:
             echo "| Unit | ${{ needs.unit.result }} |"
             echo "| Negative | ${{ needs.negative.result }} |"
             echo "| Security | ${{ needs.security.result }} |"
+            echo "| Secret leak | ${{ needs.secret-leak.result }} |"
             echo "| Java Maven | ${{ needs.java-maven.result }} |"
             echo "| Java Gradle | ${{ needs.java-gradle.result }} |"
             echo "| JavaScript | ${{ needs.javascript.result }} |"
