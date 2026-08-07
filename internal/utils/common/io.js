@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { sanitizeText, scrubSecretsFromObject } = require('../sanitize/sanitize');
 
 /**
  * Helpers compartilhados para Actions Node.
@@ -9,7 +10,8 @@ const path = require('path');
 
 function setOutput(name, value) {
   const out = process.env.GITHUB_OUTPUT;
-  const v = value === undefined || value === null ? '' : String(value);
+  let v = value === undefined || value === null ? '' : String(value);
+  v = sanitizeText(v);
   if (out) {
     // delimiter para valores com newline
     if (v.includes('\n')) {
@@ -30,7 +32,7 @@ function setOutputs(map) {
 function appendStepSummary(markdown) {
   const file = process.env.GITHUB_STEP_SUMMARY;
   if (file) {
-    fs.appendFileSync(file, `${markdown}\n`);
+    fs.appendFileSync(file, `${sanitizeText(markdown)}\n`);
   }
 }
 
@@ -40,7 +42,8 @@ function ensureDir(dir) {
 
 function writeJson(filePath, data) {
   ensureDir(path.dirname(filePath));
-  fs.writeFileSync(filePath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+  const cleaned = scrubSecretsFromObject(data);
+  fs.writeFileSync(filePath, `${JSON.stringify(cleaned, null, 2)}\n`, 'utf8');
 }
 
 function readJson(filePath) {
