@@ -12,6 +12,8 @@
     "test:unit": "node scripts/run-unit-tests.js --root tests/unit",
     "test:negative": "node scripts/run-unit-tests.js --root tests/negative",
     "test:coverage": "node scripts/run-unit-tests.js --coverage",
+    "test:integration": "node scripts/run-integration-fixture.js",
+    "fixtures:integration": "node scripts/generate-integration-fixtures.js",
     "check:action-pinning": "node tests/security/check-action-pinning.js",
     "pr": "npm run check:action-pinning",
     "version:bump": "node scripts/bump-version.js",
