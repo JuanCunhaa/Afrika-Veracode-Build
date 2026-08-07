@@ -9,7 +9,8 @@
   },
   "scripts": {
     "test": "node scripts/run-unit-tests.js",
-    "test:unit": "node scripts/run-unit-tests.js",
+    "test:unit": "node scripts/run-unit-tests.js --root tests/unit",
+    "test:negative": "node scripts/run-unit-tests.js --root tests/negative",
     "test:coverage": "node scripts/run-unit-tests.js --coverage",
     "check:action-pinning": "node tests/security/check-action-pinning.js",
     "pr": "npm run check:action-pinning",

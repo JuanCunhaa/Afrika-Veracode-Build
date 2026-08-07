@@ -2,7 +2,10 @@
 
 /**
  * Runner cross-platform para node:test (Node 20+/24).
- * Uso: node scripts/run-unit-tests.js [--coverage]
+ * Uso:
+ *   node scripts/run-unit-tests.js
+ *   node scripts/run-unit-tests.js --coverage
+ *   node scripts/run-unit-tests.js --root tests/unit --root tests/negative
  */
 
 const { spawnSync } = require('child_process');
@@ -10,6 +13,7 @@ const fs = require('fs');
 const path = require('path');
 
 function walk(dir, acc = []) {
+  if (!fs.existsSync(dir)) return acc;
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, ent.name);
     if (ent.isDirectory()) walk(full, acc);
@@ -18,19 +22,36 @@ function walk(dir, acc = []) {
   return acc;
 }
 
+function parseRoots(argv) {
+  const roots = [];
+  for (let i = 0; i < argv.length; i += 1) {
+    if (argv[i] === '--root' && argv[i + 1]) {
+      roots.push(argv[i + 1]);
+      i += 1;
+    }
+  }
+  return roots;
+}
+
 const root = path.join(__dirname, '..');
-const unitRoot = path.join(root, 'tests', 'unit');
-const files = walk(unitRoot).sort((a, b) => a.localeCompare(b));
+const argv = process.argv.slice(2);
+const coverage = argv.includes('--coverage');
+const roots = parseRoots(argv).map((r) => path.resolve(root, r));
+const searchRoots = roots.length > 0 ? roots : [path.join(root, 'tests', 'unit'), path.join(root, 'tests', 'negative')];
+
+const files = [];
+for (const dir of searchRoots) {
+  walk(dir, files);
+}
+files.sort((a, b) => a.localeCompare(b));
 
 if (files.length === 0) {
-  console.error('Nenhum teste encontrado em tests/unit/**/*.test.js');
+  console.error(`Nenhum teste encontrado em: ${searchRoots.join(', ')}`);
   process.exit(1);
 }
 
-const coverage = process.argv.includes('--coverage');
 const args = [];
 if (coverage) {
-  // Node 20+: --experimental-test-coverage (include filter so existe a partir do Node 22+)
   args.push('--experimental-test-coverage');
   const major = Number(process.versions.node.split('.')[0]);
   if (major >= 22) {
