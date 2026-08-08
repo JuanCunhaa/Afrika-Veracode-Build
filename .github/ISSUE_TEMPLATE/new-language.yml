@@ -1,0 +1,100 @@
+name: New language / technology
+description: Planejar suporte a uma nova linguagem ou tecnologia sob a Feature Completeness Policy.
+title: '[language] Support for '
+labels: ['enhancement', 'feature-completeness']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Leia [`docs/FEATURE-COMPLETENESS.md`](../docs/FEATURE-COMPLETENESS.md) antes de implementar.
+        Nao abrir PR so com Discovery — o ciclo completo e obrigatorio para Beta+.
+
+  - type: input
+    id: language
+    attributes:
+      label: Language / technology
+      description: Ex. Python, PHP, Go, Kotlin
+      placeholder: Python
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Target versions
+      description: Versoes a declarar (Supported by Veracode vs Tested by this Action)
+      placeholder: '3.10, 3.11, 3.12'
+    validations:
+      required: true
+
+  - type: input
+    id: build-systems
+    attributes:
+      label: Build systems
+      placeholder: 'Maven, Gradle, Poetry, none (SOURCE_PACKAGE)'
+
+  - type: input
+    id: package-managers
+    attributes:
+      label: Package managers
+      placeholder: 'pip, poetry, npm, NuGet, Composer'
+
+  - type: textarea
+    id: veracode-docs
+    attributes:
+      label: Official Veracode documentation URLs
+      description: Somente docs oficiais Veracode. Serao registrados em VERACODE-PACKAGING com lastVerified.
+      placeholder: https://docs.veracode.com/...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: build-required
+    attributes:
+      label: Build required by Veracode?
+      options:
+        - 'Yes — BUILD_REQUIRED / HYBRID'
+        - 'No — SOURCE_PACKAGE / SOURCE_COMPILABLE'
+        - Unclear — research first
+    validations:
+      required: true
+
+  - type: input
+    id: expected-artifact
+    attributes:
+      label: Expected artifact type
+      placeholder: 'source.zip, JAR/WAR, publish folder, …'
+
+  - type: textarea
+    id: special
+    attributes:
+      label: Special packaging requirements
+      description: Debug symbols, forbidden files, obfuscation, archive layout, runner/OS, etc.
+
+  - type: textarea
+    id: private-registry
+    attributes:
+      label: Private registry considerations
+      description: Env var **names** only (never values). Ex. PYPI_TOKEN, NPM_TOKEN
+
+  - type: dropdown
+    id: runner-os
+    attributes:
+      label: Runner OS requirements
+      options:
+        - Linux (ubuntu-latest)
+        - Windows
+        - macOS
+        - Multiple / matrix
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: completeness-ack
+    attributes:
+      label: Completeness acknowledgment
+      options:
+        - label: Entendo que Beta exige Discovery + Packager/Builder + Doctor + unit/negative/integration + contract + golden + matrix + docs + capabilities.json
+          required: true
+        - label: Entendo que Stable exige tambem Veracode E2E real com evidencia sem secrets
+          required: true

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "node-typescript",
+    "source": "tests/fixtures/integration/typescript/node-typescript",
+    "expectLanguage": "typescript",
+    "expectStrategy": "SOURCE_PACKAGE",
+    "builder": "javascript",
+    "expectZipEntries": [".ts"],
+    "forbidZipEntries": ["node_modules/"],
+    "requireTsSources": true,
+    "requirePackageJson": true,
+    "goldenDir": "tests/artifacts/javascript"
+  },
+  {
+    "id": "express-typescript",
+    "source": "tests/fixtures/integration/typescript/express-typescript",
+    "expectLanguage": "typescript",
+    "expectStrategy": "SOURCE_PACKAGE",
+    "builder": "javascript",
+    "expectZipEntries": [".ts"],
+    "forbidZipEntries": ["node_modules/"],
+    "requireTsSources": true,
+    "requirePackageJson": true
+  },
+  {
+    "id": "react-typescript",
+    "source": "tests/fixtures/integration/typescript/react-typescript",
+    "expectLanguage": "typescript",
+    "expectStrategy": "SOURCE_PACKAGE",
+    "builder": "javascript",
+    "expectZipEntries": [".tsx|.ts"],
+    "forbidZipEntries": ["node_modules/"],
+    "requireTsSources": true,
+    "requirePackageJson": true
+  },
+  {
+    "id": "nextjs-typescript",
+    "source": "tests/fixtures/integration/typescript/nextjs-typescript",
+    "expectLanguage": "typescript",
+    "expectStrategy": "SOURCE_PACKAGE",
+    "builder": "javascript",
+    "expectZipEntries": [".tsx|.ts"],
+    "forbidZipEntries": ["node_modules/"],
+    "requireTsSources": true,
+    "requirePackageJson": true
+  }
+]

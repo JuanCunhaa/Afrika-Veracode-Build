@@ -227,7 +227,7 @@ runs:
   steps:
     - name: Validate Inputs
       id: validate
-      uses: JuanCunhaa/Afrika-Veracode-Build/internal/validate-inputs@v0.1.2
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/validate-inputs@v0.1.3
       with:
         config_mode: ${{ inputs.config_mode }}
         doctor_mode: ${{ inputs.doctor_mode }}
@@ -241,7 +241,7 @@ runs:
 
     - name: Resolve Repository
       id: resolve_repo
-      uses: JuanCunhaa/Afrika-Veracode-Build/internal/resolve-repo@v0.1.2
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/resolve-repo@v0.1.3
 
     - name: Prepare output dir
       shell: bash
@@ -251,7 +251,7 @@ runs:
 
     - name: Config decide
       id: config_decide
-      uses: JuanCunhaa/Afrika-Veracode-Build/internal/utils/config-store@v0.1.2
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/utils/config-store@v0.1.3
       with:
         command: decide
         config_mode: ${{ inputs.config_mode }}
@@ -259,7 +259,7 @@ runs:
     - name: Fetch remote Build Config
       id: config_fetch
       if: steps.config_decide.outputs.should_fetch == 'true' && inputs.config_org != ''
-      uses: JuanCunhaa/Afrika-Veracode-Build/internal/utils/config-store@v0.1.2
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/utils/config-store@v0.1.3
       with:
         command: get-config
         config_mode: ${{ inputs.config_mode }}
@@ -309,7 +309,7 @@ runs:
     - name: Discovery
       id: discovery
       if: steps.validate.outputs.doctor_only != 'true'
-      uses: JuanCunhaa/Afrika-Veracode-Build/internal/discovery@v0.1.2
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/discovery@v0.1.3
       with:
         source: ${{ inputs.source }}
         project_path: ${{ inputs.project_path }}
@@ -358,7 +358,7 @@ runs:
     - name: Builder
       id: builder
       if: steps.validate.outputs.doctor_only != 'true'
-      uses: JuanCunhaa/Afrika-Veracode-Build/internal/builder@v0.1.2
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/builder@v0.1.3
       with:
         source: ${{ inputs.source }}
         build_plan_path: ${{ inputs.artifact_output_dir }}/build-plan.json
@@ -377,7 +377,7 @@ runs:
 
     - name: Doctor
       id: doctor
-      uses: JuanCunhaa/Afrika-Veracode-Build/internal/doctor@v0.1.2
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/doctor@v0.1.3
       with:
         artifact_path: ${{ inputs.artifact_path != '' && inputs.artifact_path || steps.builder.outputs.artifact_path }}
         build_plan_path: ${{ inputs.artifact_output_dir }}/build-plan.json
@@ -405,7 +405,7 @@ runs:
     - name: Save remote Build Config
       id: config_save
       if: steps.validate.outputs.doctor_only != 'true' && steps.config_decide.outputs.should_save == 'true' && inputs.config_org != '' && steps.gen_config.outputs.config_file != ''
-      uses: JuanCunhaa/Afrika-Veracode-Build/internal/utils/config-store@v0.1.2
+      uses: JuanCunhaa/Afrika-Veracode-Build/internal/utils/config-store@v0.1.3
       with:
         command: put-config
         config_mode: ${{ inputs.config_mode }}

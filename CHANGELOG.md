@@ -4,6 +4,25 @@ Todas as mudancas notaveis deste projeto serao documentadas neste arquivo.
 
 O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e este projeto adota [Versionamento Semantico](https://semver.org/lang/pt-BR/).
 
+## [0.1.3] - 2026-08-07
+
+### Added
+
+- Suíte unitária expandida em `tests/unit/` (Discovery, BuildPlan, Doctor, Fingerprint, Config, Sanitize, Utils) com fixtures em `tests/fixtures/unit/`.
+- Suíte de negative/failure tests em `tests/negative/` com assertion de error codes e status Doctor (INVALID vs READY_WITH_WARNINGS).
+- Fixtures de integration reais em `tests/fixtures/integration/` (Java Maven/Gradle, JS/TS, .NET) + runner `scripts/run-integration-fixture.js`.
+- **Builder → Doctor Contract Tests** em `tests/contract/builder-doctor/` + runner `scripts/run-builder-doctor-contract.js` (falha com `BUILDER_DOCTOR_CONTRACT_BROKEN` se Builder ok e Doctor `INVALID`); docs em `docs/BUILDER-DOCTOR-CONTRACT.md`.
+- **Test Matrix** central em `tests/test-matrix.json` com perfis `pr` / `full` / `release` (resolve em `scripts/resolve-test-matrix.js`); shards Quality/Unit/Negative/Security/Builder-Doctor no workflow `CI`; schedule semanal full; docs em `docs/TEST-MATRIX.md`.
+- Politica **Secret Zero-Leak**: sanitizacao central (`sanitizeText` / `sanitizeError` / `sanitizeCommand` / `registerSecret`), `writeJson` scrub, job Gate `secret-leak` (`tests/security/secret-leak/`), docs em `SECURITY.md`.
+- Politica **Feature Completeness** (NO PARTIAL FEATURE): `docs/FEATURE-COMPLETENESS.md`, SoT `schemas/capabilities.json`, validator `npm run check:completeness` (`FEATURE_COMPLETENESS_FAILED`), job Gate `feature-completeness`, PR/issue templates.
+- Jobs de contract no workflow `CI` alimentando o Gate; matriz em `docs/INTEGRATION-MATRIX.md` / `docs/TEST-MATRIX.md`.
+- Scripts `npm test` / `npm run test:unit` / `npm run test:negative` / `npm run test:coverage` / `npm run test:contract` / `npm run test:matrix` / `npm run test:secret-leak` / `npm run check:completeness`.
+
+### Changed
+
+- Detector Gradle reconhece `JavaLanguageVersion.of(N)` tambem em forma Kotlin DSL (`languageVersion.set`).
+- Sanitize nunca persiste valores string sob chaves secret-like (ex.: `NUGET_TOKEN`), mesmo quando o valor parece um nome `UPPER_SNAKE`.
+
 ## [0.1.2] - 2026-08-07
 
 ### Changed
@@ -27,6 +46,7 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0
 - Build Config remoto atualizavel com fingerprint SHA-256 e GitHub App/PAT.
 - Inputs, outputs, codigos de erro padronizados e documentacao completa do MVP.
 
+[0.1.3]: https://github.com/JuanCunhaa/Afrika-Veracode-Build/releases/tag/v0.1.3
 [0.1.2]: https://github.com/JuanCunhaa/Afrika-Veracode-Build/releases/tag/v0.1.2
 [0.1.1]: https://github.com/JuanCunhaa/Afrika-Veracode-Build/releases/tag/v0.1.1
 [0.1.0]: https://github.com/JuanCunhaa/Afrika-Veracode-Build/releases/tag/v0.1.0

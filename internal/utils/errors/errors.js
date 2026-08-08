@@ -4,6 +4,8 @@
  * Codigos de erro padronizados da Afrika-Veracode-Build.
  */
 
+const { sanitizeText, sanitizeError } = require('../sanitize/sanitize');
+
 const ERROR_CODES = Object.freeze({
   UNSUPPORTED_LANGUAGE: 'UNSUPPORTED_LANGUAGE',
   UNSUPPORTED_VERSION: 'UNSUPPORTED_VERSION',
@@ -36,40 +38,56 @@ const ERROR_CODES = Object.freeze({
   CONFIG_STALE: 'CONFIG_STALE',
 
   DOCTOR_FAILED: 'DOCTOR_FAILED',
+  BUILDER_DOCTOR_CONTRACT_BROKEN: 'BUILDER_DOCTOR_CONTRACT_BROKEN',
+  SECRET_LEAK_DETECTED: 'SECRET_LEAK_DETECTED',
+  FEATURE_COMPLETENESS_FAILED: 'FEATURE_COMPLETENESS_FAILED',
   INVALID_INPUT: 'INVALID_INPUT'
 });
 
 /**
- * Formata e emite erro estruturado para GitHub Actions.
+ * Formata e emite erro estruturado para GitHub Actions (sempre sanitizado).
  * @param {string} code
  * @param {string} message
  * @param {{ detected?: string, stage?: string, requirement?: string, why?: string, howToFix?: string }} [details]
  */
 function fail(code, message, details = {}) {
-  const lines = [code, '', message];
+  const safeMessage = sanitizeText(message);
+  const lines = [code, '', safeMessage];
 
   if (details.detected) {
-    lines.push('', `Detectado: ${details.detected}`);
+    lines.push('', `Detectado: ${sanitizeText(details.detected)}`);
   }
   if (details.stage) {
-    lines.push(`Etapa: ${details.stage}`);
+    lines.push(`Etapa: ${sanitizeText(details.stage)}`);
   }
   if (details.requirement) {
-    lines.push(`Requisito: ${details.requirement}`);
+    lines.push(`Requisito: ${sanitizeText(details.requirement)}`);
   }
   if (details.why) {
-    lines.push(`Por que e necessario: ${details.why}`);
+    lines.push(`Por que e necessario: ${sanitizeText(details.why)}`);
   }
   if (details.howToFix) {
-    lines.push('', 'Como corrigir:', details.howToFix);
+    lines.push('', 'Como corrigir:', sanitizeText(details.howToFix));
   }
 
   const text = lines.join('\n');
-  console.error(`::error title=${code}::${message.replace(/\n/g, '%0A')}`);
+  console.error(`::error title=${code}::${safeMessage.replace(/\n/g, '%0A')}`);
   console.error(text);
   const err = new Error(text);
   err.code = code;
   throw err;
+}
+
+/**
+ * Emite erro de catch ja sanitizado (stack incluido).
+ * @param {unknown} err
+ */
+function logCaughtError(err) {
+  const clean = sanitizeError(err);
+  console.error(`::error::${clean.message}`);
+  if (clean.stack) {
+    console.error(sanitizeText(clean.stack));
+  }
 }
 
 /**
@@ -91,5 +109,6 @@ function classifyDependencyError(output) {
 module.exports = {
   ERROR_CODES,
   fail,
+  logCaughtError,
   classifyDependencyError
 };

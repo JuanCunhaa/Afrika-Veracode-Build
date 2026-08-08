@@ -1,11 +1,11 @@
 'use strict';
 
-const { sanitizeLog } = require('./sanitize');
+const { sanitizeText, sanitizeLog } = require('./sanitize');
 const { setOutput, envStr } = require('../common/io');
 
 function main() {
   const text = envStr('TEXT', '');
-  const sanitized = sanitizeLog(text);
+  const sanitized = sanitizeText(text);
   setOutput('sanitized', sanitized);
 }
 
@@ -13,4 +13,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { main };
+module.exports = { main, sanitizeText, sanitizeLog };

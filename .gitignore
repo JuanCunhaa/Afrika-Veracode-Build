@@ -1,7 +1,11 @@
 node_modules/
 .veracode-build/
+.veracode-build-int/
+.veracode-build-contract/
 .build-config-github-token
 .baseline-github-token
 *.log
 .DS_Store
 coverage/
+tests/artifacts/**/*.zip
+tests/artifacts/**/*-entries.json

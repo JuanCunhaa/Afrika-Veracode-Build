@@ -15,7 +15,8 @@ const {
   timingMs
 } = require('../utils/common/io');
 const { validateDoctorResult } = require('../utils/schemas/validate');
-const { fail, ERROR_CODES } = require('../utils/errors/errors');
+const { fail, ERROR_CODES, logCaughtError } = require('../utils/errors/errors');
+const { registerSecretsFromEnv, sanitizeText } = require('../utils/sanitize/sanitize');
 
 const REGISTRY = {
   'java-compiled': doctorJava,
@@ -28,6 +29,7 @@ const REGISTRY = {
 };
 
 function main() {
+  registerSecretsFromEnv();
   const start = timingNow();
   const artifactPath = path.resolve(envStr('ARTIFACT_PATH', ''));
   const planPath = envStr('BUILD_PLAN_PATH', '');
@@ -78,7 +80,7 @@ function main() {
 
   console.log(`Doctor: ${validated.status} (${elapsed.toFixed(1)}s)`);
   for (const c of validated.checks) {
-    console.log(` - [${c.status}] ${c.id}${c.message ? `: ${c.message}` : ''}`);
+    console.log(` - [${c.status}] ${c.id}${c.message ? `: ${sanitizeText(c.message)}` : ''}`);
   }
 
   if (failed) {
@@ -93,7 +95,7 @@ if (require.main === module) {
   try {
     main();
   } catch (err) {
-    console.error(`::error::${err.message || err}`);
+    logCaughtError(err);
     process.exit(1);
   }
 }

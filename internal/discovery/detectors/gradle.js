@@ -22,7 +22,7 @@ function findBuildFile(root) {
 
 function detectJavaVersion(root, build) {
   const patterns = [
-    /languageVersion\s*=\s*JavaLanguageVersion\.of\((\d+)\)/,
+    /JavaLanguageVersion\.of\((\d+)\)/,
     /sourceCompatibility\s*=\s*['"]?([\d.]+)/,
     /targetCompatibility\s*=\s*['"]?([\d.]+)/,
     /JavaVersion\.VERSION_(\d+)/,

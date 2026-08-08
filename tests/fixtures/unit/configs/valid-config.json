@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "repository": "org/app",
+  "discovery": {
+    "language": "java",
+    "buildSystem": "maven",
+    "confidence": "HIGH",
+    "runtimeVersion": "17"
+  },
+  "builder": {
+    "strategy": "BUILD_REQUIRED"
+  },
+  "fingerprint": {
+    "algorithm": "sha256",
+    "value": "abc123"
+  },
+  "dependencies": {
+    "requiredEnvironmentVariables": [
+      "MAVEN_TOKEN"
+    ]
+  }
+}
