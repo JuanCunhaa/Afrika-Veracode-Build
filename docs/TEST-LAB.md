@@ -108,3 +108,9 @@ export SUITE=pr
 export CORRELATION_ID=manual-$(date +%s)
 node scripts/lab/dispatch-and-wait.mjs
 ```
+
+---
+
+## Live smoke marker
+
+Smoke PR marker generated at 2026-08-08 23:16:38 -03:00 to validate Local Gate ? Lab Orchestrator ? Lab Compatibility Gate end-to-end. Safe to remove after verification.
