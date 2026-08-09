@@ -31,11 +31,11 @@ Rules:
 
 Open a PR (or push to `main`). Every commit that finishes **Local Gate** automatically triggers Lab Orchestrator via `workflow_run` — no manual dispatch.
 
-| Event | Lab suite | Check on the commit SHA |
-| ----- | --------- | ----------------------- |
-| PR commit (`pull_request`) | `pr` | **Lab Compatibility Gate** (`in_progress` → success/failure) |
-| Push to `main` | `full` | same |
-| Feature branch **without** open PR | — | CI does not run (no Lab) |
+| Event                              | Lab suite | Check on the commit SHA                                      |
+| ---------------------------------- | --------- | ------------------------------------------------------------ |
+| PR commit (`pull_request`)         | `pr`      | **Lab Compatibility Gate** (`in_progress` → success/failure) |
+| Push to `main`                     | `full`    | same                                                         |
+| Feature branch **without** open PR | —         | CI does not run (no Lab)                                     |
 
 A new commit on the same branch cancels the previous in-flight Lab Orchestrator (`cancel-in-progress` by branch). If Local Gate fails, Lab is not dispatched and **Lab Compatibility Gate** is published as **failure** (not left pending).
 
