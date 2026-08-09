@@ -17,6 +17,11 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0
 - Draft PR policy: **DRAFT_PR_LAB_DEFERRED** until `ready_for_review`.
 - SHA policy module `scripts/lab/resolve-source-sha.mjs`: PR events use `refs/pull/<n>/merge` (aligned with Local Gate / Branch Protection); feature push keeps HEAD.
 
+### Fixed
+
+- Gradle discovery: `JavaVersion.VERSION_1_8` resolves to runtime `8` (not `1`).
+- Maven discovery: aggregator `packaging=pom` collects module artifacts via `*/target/*.jar`.
+
 ### Changed
 
 - Externalized compatibility and real-application test laboratory to **Afrika-Veracode-Build-Lab**.

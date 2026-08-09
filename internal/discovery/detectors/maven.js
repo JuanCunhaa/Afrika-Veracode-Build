@@ -86,14 +86,17 @@ function detect(root) {
   const requiredEnvironmentVariables = detectRequiredEnv(pom);
   const shade = /maven-shade-plugin/i.test(pom);
 
+  // Aggregator POMs build module jars under <module>/target — not root target/.
   const artifactPatterns =
     packaging === 'war'
       ? ['target/*.war']
       : packaging === 'ear'
         ? ['target/*.ear']
-        : framework === 'quarkus'
-          ? ['target/*-runner.jar', 'target/*.jar']
-          : ['target/*.jar'];
+        : packaging === 'pom'
+          ? ['*/target/*.jar', '*/target/*.war', 'target/*.jar']
+          : framework === 'quarkus'
+            ? ['target/*-runner.jar', 'target/*.jar']
+            : ['target/*.jar'];
 
   return {
     schemaVersion: 1,

@@ -25,6 +25,12 @@ describe('discovery / java-gradle', () => {
     assert.equal(d.projectType, 'library-or-app');
   });
 
+  it('detecta JavaVersion.VERSION_1_8 as runtime 8 (not 1)', () => {
+    const d = detect(path.join(gradle, 'java8-versionenum'));
+    assert.equal(d.runtimeVersion, '8');
+    assert.equal(d.buildSystem, 'gradle');
+  });
+
   it('detecta Java toolchain em Kotlin DSL', () => {
     const d = detect(path.join(gradle, 'java17-toolchain'));
     assert.equal(d.runtimeVersion, '17');
