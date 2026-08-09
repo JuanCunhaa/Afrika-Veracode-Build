@@ -8,11 +8,14 @@ const { pathToFileURL } = require('node:url');
 
 const MODULE_PATH = path.resolve(__dirname, '../../../scripts/lab/dispatch-and-wait.mjs');
 const RESOLVE_PATH = path.resolve(__dirname, '../../../scripts/lab/resolve-suite.mjs');
+const SHA_PATH = path.resolve(__dirname, '../../../scripts/lab/resolve-source-sha.mjs');
 
 /** @type {typeof import('../../../scripts/lab/dispatch-and-wait.mjs')} */
 let lab;
 /** @type {typeof import('../../../scripts/lab/resolve-suite.mjs')} */
 let resolveSuite;
+/** @type {typeof import('../../../scripts/lab/resolve-source-sha.mjs')} */
+let resolveSha;
 
 /** Distinct fake private-key material that must NEVER appear in errors/logs. */
 const FAKE_PRIVATE_KEY_MATERIAL = 'FAKE_PRIVATE_KEY_MATERIAL_DO_NOT_LEAK_abc123XYZ';
@@ -76,6 +79,71 @@ function emptyDedupeList() {
 before(async () => {
   lab = await import(pathToFileURL(MODULE_PATH).href);
   resolveSuite = await import(pathToFileURL(RESOLVE_PATH).href);
+  resolveSha = await import(pathToFileURL(SHA_PATH).href);
+});
+
+describe('resolveSourceSha (branch protection alignment)', () => {
+  const head = 'a'.repeat(40);
+  const merge = 'b'.repeat(40);
+  const mainTip = 'c'.repeat(40);
+
+  it('feature push uses branch HEAD (not a PR merge SHA)', () => {
+    const r = resolveSha.resolveSourceSha({
+      sourceEvent: 'push',
+      headSha: head,
+      headBranch: 'feature/x',
+      defaultBranch: 'main'
+    });
+    assert.equal(r.sha, head);
+    assert.equal(r.kind, 'feature_head');
+  });
+
+  it('pull_request requires and uses refs/pull/n/merge SHA', () => {
+    const r = resolveSha.resolveSourceSha({
+      sourceEvent: 'pull_request',
+      headSha: head,
+      prMergeSha: merge
+    });
+    assert.equal(r.sha, merge);
+    assert.equal(r.kind, 'pr_merge');
+    assert.notEqual(r.sha, head);
+  });
+
+  it('pull_request without merge SHA throws (prevents head.sha-only regression)', () => {
+    assert.throws(() =>
+      resolveSha.resolveSourceSha({
+        sourceEvent: 'pull_request',
+        headSha: head,
+        prMergeSha: ''
+      })
+    );
+  });
+
+  it('merge_group uses merge group SHA', () => {
+    const r = resolveSha.resolveSourceSha({
+      sourceEvent: 'merge_group',
+      headSha: head,
+      mergeGroupSha: head
+    });
+    assert.equal(r.sha, head);
+    assert.equal(r.kind, 'merge_group');
+  });
+
+  it('push main uses main tip → full path SHA', () => {
+    const r = resolveSha.resolveSourceSha({
+      sourceEvent: 'push',
+      headSha: mainTip,
+      headBranch: 'main',
+      defaultBranch: 'main'
+    });
+    assert.equal(r.sha, mainTip);
+    assert.equal(r.kind, 'main_head');
+  });
+
+  it('feature HEAD and PR merge SHA are not the same for dedupe', () => {
+    assert.equal(resolveSha.isSameExactSha(head, merge), false);
+    assert.equal(resolveSha.isSameExactSha(head, head), true);
+  });
 });
 
 describe('resolveLabSuite', () => {

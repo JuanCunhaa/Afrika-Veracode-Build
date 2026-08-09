@@ -274,7 +274,8 @@ export function runMatchesShaSuite(run, sourceSha, suite) {
 }
 
 /**
- * Find an existing Lab Gate run for the same SHA + suite.
+ * Find an existing Lab Gate run for the same repository + exact SHA + suite.
+ * Feature-push HEAD and PR merge SHA must not match across events — no cross-dedupe.
  * Prefer in-flight (queued/in_progress), else successful completed.
  * Failure/cancelled are NOT reused (allow redispatch).
  *

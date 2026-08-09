@@ -16,6 +16,7 @@ Configure under **Settings → Branches → Branch protection rules**:
 ## Notes
 
 - `Lab Compatibility Gate` is published automatically after every successful `CI` (feature push, PR, merge_group, main). It is **not** a job inside `ci.yml`.
+- SHA alignment: feature push → branch HEAD; **pull_request → `refs/pull/<n>/merge`**; merge_group → group SHA; main → main tip. Local Gate and Lab Compatibility Gate must share that SHA (see [TEST-LAB.md](TEST-LAB.md)).
 - While Lab runs, the check appears as **in_progress**; `details_url` links to the Lab workflow run when available.
 - If Local Gate fails, Lab is not dispatched and `Lab Compatibility Gate` is published as **failure**.
 - Draft PRs get **DRAFT_PR_LAB_DEFERRED** (failure) until `ready_for_review`.

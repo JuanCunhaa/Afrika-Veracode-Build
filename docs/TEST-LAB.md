@@ -33,7 +33,7 @@ Rules:
 - Orchestrator (`.github/workflows/lab-orchestrator.yml`) **never** checks out PR head for dispatch logic.
 - Checkout uses `github.event.repository.default_branch` only.
 - Lab App secrets live only on the Action repo and are used only in the orchestrator — never in `ci.yml` / PR-head workflows.
-- Checks API uses Action `GITHUB_TOKEN` (`checks:write`). App is installed on the **Lab** only (Actions R/W).
+- Checks API uses Action `GITHUB_TOKEN` on the trusted orchestrator only (`contents: read`, `checks: write`, `pull-requests: read`). App is installed on the **Lab** only (Actions R/W). Untrusted `ci.yml` stays `contents: read` (no `checks: write`).
 - Script uses App JWT (RS256) + installation token; prefer **no** PAT.
 
 ---
@@ -59,36 +59,51 @@ Release eligibility = **full** success on the candidate SHA + **Veracode E2E** w
 
 ---
 
-## Event → suite policy
+## Event → suite + SHA policy (Branch Protection alignment)
 
-| Event                                                                      | Local Gate | Lab suite                | Notes                                                 |
-| -------------------------------------------------------------------------- | ---------- | ------------------------ | ----------------------------------------------------- |
-| Push branch ≠ `main`                                                       | yes        | `pr`                     | Feedback before opening a PR                          |
-| Pull request → `main` (opened / synchronize / reopened / ready_for_review) | yes        | `pr`                     | Lab tests **PR head SHA**                             |
-| Draft PR                                                                   | yes        | deferred                 | Check **DRAFT_PR_LAB_DEFERRED** (failure until ready) |
-| Merge group → `main`                                                       | yes        | `pr`                     | Combined commit validation                            |
-| Push `main`                                                                | yes        | `full`                   | Post-merge full matrix                                |
-| Manual orchestrator `workflow_dispatch`                                    | n/a        | `pr` or `full`           | Maintainer re-run / fork validation                   |
-| Lab schedule (`full-matrix.yml`)                                           | —          | `full`                   | Against Action `main` HEAD                            |
-| Release / tag path                                                         | yes        | `full` then separate E2E | E2E trusted-only                                      |
+Local Gate and Lab Compatibility Gate must be associated with the SHA GitHub expects for that event.
 
-Local CI on `pull_request` may use GitHub’s merge ref; Lab always validates **`workflow_run.head_sha`** (the Action commit under test).
+| Event                                   | Local Gate | Lab suite                    | SHA under test / check                                                                                      |
+| --------------------------------------- | ---------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Push branch ≠ `main`                    | yes        | `pr`                         | **Feature HEAD** (`workflow_run.head_sha`)                                                                  |
+| Pull request → `main`                   | yes        | `pr`                         | **PR merge commit** `refs/pull/<n>/merge` (same as CI `github.sha`) — **not** `pull_request.head.sha` alone |
+| Draft PR                                | yes        | deferred                     | Merge SHA when resolvable; check **DRAFT_PR_LAB_DEFERRED**                                                  |
+| Merge group → `main`                    | yes        | `pr`                         | **Merge group SHA**                                                                                         |
+| Push `main`                             | yes        | `full`                       | **Main tip SHA**                                                                                            |
+| Manual orchestrator `workflow_dispatch` | n/a        | `pr` or `full`               | Caller SHA (for PR re-validation prefer merge SHA)                                                          |
+| Lab schedule (`full-matrix.yml`)        | —          | `full`                       | Action `main` HEAD                                                                                          |
+| Release / tag                           | yes        | `full` then **Veracode E2E** | Candidate SHA; E2E is a separate gate                                                                       |
 
-A new commit on the same branch cancels the previous in-flight Lab Orchestrator (`cancel-in-progress` by branch). If Local Gate fails, Lab is not dispatched and **Lab Compatibility Gate** is published as **failure**.
+```text
+FEATURE PUSH     → HEAD SHA      → Lab pr
+PR → MAIN        → PR MERGE SHA  → Lab pr
+MERGE GROUP      → GROUP SHA     → Lab pr
+MAIN             → MAIN SHA      → Lab full
+RELEASE / TAG    → Lab full → Veracode E2E → Release eligible
+```
+
+Implementation: `scripts/lab/resolve-source-sha.mjs` (unit-tested). Orchestrator resolves `GET .../git/ref/pull/<n>/merge` for `pull_request` events.
+
+A new commit on the same branch cancels the previous in-flight Lab Orchestrator (`cancel-in-progress` by branch). If Local Gate fails, Lab is not dispatched and **Lab Compatibility Gate** is published as **failure** on the same policy SHA.
 
 ---
 
-## Deduplication (same SHA + suite)
+## Deduplication (same exact SHA + suite only)
 
 Key: `JuanCunhaa/Afrika-Veracode-Build:<sha>:<suite>`
 
-Before dispatch, the orchestrator looks for an existing Lab Gate run whose run-name contains that SHA and suite:
+Before dispatch, reuse only when repository + **exact** SHA + suite match:
 
-- **queued / in_progress** → wait on that run (no second dispatch)
-- **success** → reuse (push + PR synchronize on the same SHA)
+- **queued / in_progress** → wait on that run
+- **success** → reuse
 - **failure / cancelled** → allow a new dispatch
 
-Never reuse `pr` for `full` or a different SHA.
+**Do not** dedupe feature-push HEAD against PR merge SHA — they differ by design:
+
+- feature push validates the branch in isolation
+- PR validates the integrated result with `main`
+
+Never reuse `pr` for `full`.
 
 ---
 
@@ -101,7 +116,7 @@ Never reuse `pr` for `full` or a different SHA.
 3. Install on **`Afrika-Veracode-Build-Lab`** only.
 4. Store PEM in Action repo secrets (never commit).
 
-Checks on the Action SHA are published with the Action workflow `GITHUB_TOKEN` (not the App).
+Checks API uses Action `GITHUB_TOKEN` on the trusted orchestrator only (`contents: read`, `checks: write`, `pull-requests: read`). App is installed on the **Lab** only (Actions R/W). Untrusted `ci.yml` stays `contents: read` (no `checks: write`).
 
 ### Secrets (Action repository)
 

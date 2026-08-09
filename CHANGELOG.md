@@ -15,6 +15,7 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0
 - SHA+suite **deduplication** before Lab dispatch (reuse success / wait on in-flight).
 - Workflow secret policy validator (`npm run check:workflow-secrets`).
 - Draft PR policy: **DRAFT_PR_LAB_DEFERRED** until `ready_for_review`.
+- SHA policy module `scripts/lab/resolve-source-sha.mjs`: PR events use `refs/pull/<n>/merge` (aligned with Local Gate / Branch Protection); feature push keeps HEAD.
 
 ### Changed
 

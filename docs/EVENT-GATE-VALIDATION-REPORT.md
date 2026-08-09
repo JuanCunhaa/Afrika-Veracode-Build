@@ -1,53 +1,59 @@
 # EVENT / GATE VALIDATION REPORT
 
 Date: 2026-08-09  
-Action branch: `feat/lab-orchestrator-auto-checks` (PR #6 expansion)  
-Lab branch: `feat/pr-full-suites`
+Action branch: `feat/lab-orchestrator-auto-checks` (PR #6)  
+Lab branch: `feat/pr-full-suites` (Lab PR #1)
 
 ## Policy (implemented)
 
 ```text
-FEATURE BRANCH PUSH → Local + Lab pr
-PR → MAIN            → Local + Lab pr
-MAIN                 → Local + Lab full
-RELEASE              → Lab full + Veracode E2E (separate)
+FEATURE BRANCH PUSH → Local + Lab pr   (SHA = feature HEAD)
+PR → MAIN            → Local + Lab pr   (SHA = refs/pull/<n>/merge)
+MERGE GROUP          → Local + Lab pr   (SHA = merge group)
+MAIN                 → Local + Lab full (SHA = main tip)
+RELEASE / TAG        → Lab full → Veracode E2E → Release eligible
 ```
 
-## Matrix counts (from Lab SoT)
+`full` and **Veracode E2E** are different validations. E2E is never a Compatibility suite mode.
 
-Resolved locally after Lab changes:
+Feature-push HEAD and PR merge SHA are **not** deduped against each other (intentional double validation).
+
+## Matrix counts (from Lab SoT)
 
 | Suite    | Cases |
 | -------- | ----- |
 | **pr**   | 14    |
 | **full** | 40    |
 
-Lost tests from removing `release` suite: **0** (every former release row already had `full`).
+Lost tests from removing `release` suite: **0**.
 
 ## Validation status
 
-| Layer                                              | Status                                               |
-| -------------------------------------------------- | ---------------------------------------------------- |
-| Unit tests (Action lab dispatcher + suite mapping) | **Validated locally** (17 pass)                      |
-| Workflow secret policy                             | **Validated locally**                                |
-| Matrix unit tests (Lab)                            | **Validated locally** (expected)                     |
-| Live feature push → Lab pr                         | **Live integration pending** (after merge)           |
-| Live PR → Lab pr / dedupe                          | **Live integration pending**                         |
-| Live main → Lab full                               | **Live integration pending**                         |
-| Manual pr / full                                   | **Validated through mocks** + static workflow inputs |
+| Layer                                                                      | Status                       |
+| -------------------------------------------------------------------------- | ---------------------------- |
+| Unit tests (suite mapping + SHA policy + dispatcher/dedupe)                | **Validated locally**        |
+| Workflow secret policy (`ci.yml` has no Lab/Veracode secrets)              | **Validated locally**        |
+| Orchestrator permissions (contents:read, checks:write, pull-requests:read) | **Validated statically**     |
+| Live feature push → Lab pr PASS                                            | **Live integration pending** |
+| Live PR → main → Lab pr PASS (merge SHA)                                   | **Live integration pending** |
+| Live intentional Lab fail → PR blocked                                     | **Live integration pending** |
+| Live main → Lab full PASS                                                  | **Live integration pending** |
+| Live new commit → prior check not reused                                   | **Live integration pending** |
 
-## Event / Gate table (target vs implementation)
+Do **not** mark the five live scenarios above as validated until executed on GitHub.
 
-| Event               | Local                           | Lab                            | Suite  | Result            |
-| ------------------- | ------------------------------- | ------------------------------ | ------ | ----------------- |
-| feature branch push | Implemented (`ci.yml` push all) | Orchestrator → Lab             | `pr`   | Pending live      |
-| PR → main           | Implemented                     | Orchestrator → Lab             | `pr`   | Pending live      |
-| same SHA push+PR    | Implemented (dedupe)            | Reuse success / wait in-flight | `pr`   | Mocked unit       |
-| main push           | Implemented                     | Orchestrator → Lab             | `full` | Pending live      |
-| merge_group         | Implemented (`ci.yml`)          | Orchestrator → Lab             | `pr`   | Pending live      |
-| draft PR            | Local only                      | Deferred check                 | —      | Static + workflow |
-| manual pr           | Orchestrator dispatch           | Lab                            | `pr`   | Inputs + mocks    |
-| manual full         | Orchestrator dispatch           | Lab                            | `full` | Inputs + mocks    |
+## Event / Gate table
+
+| Event                        | Local        | Lab                | Suite        | SHA                   | Live result       |
+| ---------------------------- | ------------ | ------------------ | ------------ | --------------------- | ----------------- |
+| feature branch push          | Implemented  | Orchestrator → Lab | `pr`         | feature HEAD          | Pending           |
+| PR → main                    | Implemented  | Orchestrator → Lab | `pr`         | PR merge              | Pending           |
+| same feature HEAD + PR merge | Both run     | No cross-dedupe    | `pr`         | different SHAs        | By design         |
+| main push                    | Implemented  | Orchestrator → Lab | `full`       | main tip              | Pending           |
+| merge_group                  | Implemented  | Orchestrator → Lab | `pr`         | group SHA             | Pending           |
+| draft PR                     | Local only   | Deferred check     | —            | merge when resolvable | Static            |
+| Release / Tag                | Local + Lab  | then E2E           | `full` + E2E | candidate             | Pending (E2E env) |
+| manual pr / full             | Orchestrator | Lab                | `pr`/`full`  | caller SHA            | Mocks + inputs    |
 
 ## PR SUITE
 
@@ -70,11 +76,18 @@ Result: Live integration pending
 ```text
 Untrusted code with GitHub App secret: 0
 Untrusted code with Veracode secret: 0
-Secret leaks: 0 (policy: ci.yml forbidden; only lab-orchestrator.yml may use LAB_GITHUB_APP_*)
+Secret leaks: 0
+GitHub App install: Lab only (Actions)
+Check publish: Action GITHUB_TOKEN (checks:write) on trusted orchestrator only
+CI (untrusted/PR code path): contents:read only — no checks:write
 ```
 
-## Notes
+## Next step
 
-- Checks published with Action `GITHUB_TOKEN`; App installed on Lab only.
-- Compatibility Lab uses realistic laboratory apps + real toolchains; not customer repos; not Veracode Cloud.
-- `CONFIG_MODE=disabled` on Lab Gate contracts.
+**LIVE INTEGRATION VALIDATION** on GitHub (after merge of Action #6 + Lab #1 as needed):
+
+1. feature push → pr PASS
+2. PR → main → pr PASS (verify check SHA = merge commit)
+3. intentional Lab fail → PR BLOCKED
+4. main → full PASS
+5. new commit → previous check not reused for the new SHA
