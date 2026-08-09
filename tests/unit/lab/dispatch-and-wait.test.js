@@ -188,17 +188,17 @@ describe('resolveLabSuite', () => {
       }),
       { suite: 'pr', skipReason: 'DRAFT_PR_LAB_DEFERRED', draft: true }
     );
-    assert.deepEqual(
-      resolveSuite.resolveLabSuite({ sourceEvent: 'workflow_dispatch', manualSuite: 'pr' }),
-      { suite: 'pr', skipReason: null, draft: false }
-    );
-    assert.deepEqual(
-      resolveSuite.resolveLabSuite({ sourceEvent: 'workflow_dispatch', manualSuite: 'full' }),
-      { suite: 'full', skipReason: null, draft: false }
-    );
-    assert.throws(() =>
-      resolveSuite.resolveLabSuite({ sourceEvent: 'workflow_dispatch', manualSuite: 'release' })
-    );
+    assert.deepEqual(resolveSuite.resolveLabSuite({ sourceEvent: 'workflow_dispatch', manualSuite: 'pr' }), {
+      suite: 'pr',
+      skipReason: null,
+      draft: false
+    });
+    assert.deepEqual(resolveSuite.resolveLabSuite({ sourceEvent: 'workflow_dispatch', manualSuite: 'full' }), {
+      suite: 'full',
+      skipReason: null,
+      draft: false
+    });
+    assert.throws(() => resolveSuite.resolveLabSuite({ sourceEvent: 'workflow_dispatch', manualSuite: 'release' }));
   });
 
   it('labDedupeKey includes repo sha suite', () => {
@@ -784,7 +784,15 @@ describe('dispatch-and-wait', () => {
             SOURCE_SHA: 'e'.repeat(40),
             SUITE: 'release'
           },
-          { fetchImpl: async () => ({ ok: true, status: 200, async json() { return {}; } }) }
+          {
+            fetchImpl: async () => ({
+              ok: true,
+              status: 200,
+              async json() {
+                return {};
+              }
+            })
+          }
         ),
       (err) => err.code === 'LAB_RESULT_INVALID' && String(err.message).includes('pr|full')
     );

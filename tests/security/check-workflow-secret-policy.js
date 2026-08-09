@@ -21,11 +21,7 @@ const FORBIDDEN_IN_CI = [
   'VERACODE_API_ID'
 ];
 
-const LAB_APP_SECRETS = [
-  'LAB_GITHUB_APP_PRIVATE_KEY',
-  'LAB_GITHUB_APP_ID',
-  'LAB_GITHUB_APP_INSTALLATION_ID'
-];
+const LAB_APP_SECRETS = ['LAB_GITHUB_APP_PRIVATE_KEY', 'LAB_GITHUB_APP_ID', 'LAB_GITHUB_APP_INSTALLATION_ID'];
 
 function read(rel) {
   return fs.readFileSync(path.join(WORKFLOWS, rel), 'utf8');
