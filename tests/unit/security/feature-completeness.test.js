@@ -4,7 +4,19 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const { runCheck, validateCapability, CODE } = require('../../security/check-feature-completeness');
 
-describe('feature-completeness', () => {
+function labOk(overrides = {}) {
+  return {
+    required: true,
+    integrationSuite: 'javascript',
+    contractSuite: 'javascript',
+    goldenSuite: 'javascript',
+    matrixKey: 'javascript',
+    veracodeE2E: false,
+    ...overrides
+  };
+}
+
+describe('feature-completeness (Action)', () => {
   it('current capabilities.json passes the completeness contract', () => {
     const { ok, failures } = runCheck();
     assert.equal(ok, true, JSON.stringify(failures, null, 2));
@@ -24,12 +36,9 @@ describe('feature-completeness', () => {
         unitGlobs: ['tests/unit/discovery/javascript'],
         negativeRequired: true,
         contractFamily: 'javascript',
-        integrationFixtureRoot: 'tests/fixtures/integration/javascript',
-        goldenArtifactsRoot: 'tests/artifacts/javascript',
-        testMatrixKey: 'javascript',
+        labValidation: labOk(),
         veracodeE2E: false
       },
-      { javascript: [{ case: 'x', profiles: ['full'] }] },
       new Set(['javascript-source']),
       'JavaScript',
       'JavaScript'
@@ -37,7 +46,7 @@ describe('feature-completeness', () => {
     assert.ok(missing.some((m) => /discovery/i.test(m)));
   });
 
-  it('stable without E2E evidence fails', () => {
+  it('stable without E2E flag fails (evidence lives in Lab)', () => {
     const missing = validateCapability(
       'javascript',
       {
@@ -51,19 +60,69 @@ describe('feature-completeness', () => {
         unitGlobs: ['tests/unit/discovery/javascript'],
         negativeRequired: true,
         contractFamily: 'javascript',
-        integrationFixtureRoot: 'tests/fixtures/integration/javascript',
-        goldenArtifactsRoot: 'tests/artifacts/javascript',
-        testMatrixKey: 'javascript',
+        labValidation: labOk({ veracodeE2E: false }),
         readmeRow: 'JavaScript',
         veracodePackagingSection: 'JavaScript',
         veracodeE2E: false
       },
-      { javascript: [{ case: 'x', profiles: ['full'] }] },
       new Set(['javascript-source']),
       'JavaScript',
       'JavaScript'
     );
-    assert.ok(missing.some((m) => /veracodeE2E/i.test(m) || /E2E evidence/i.test(m)));
+    assert.ok(missing.some((m) => /veracodeE2E/i.test(m)));
+  });
+
+  it('does not require local integrationFixtureRoot / golden / contract cases / matrix file', () => {
+    const missing = validateCapability(
+      'javascript',
+      {
+        status: 'beta',
+        buildRequired: false,
+        packagingRequired: true,
+        discoveryDetector: 'internal/discovery/detectors/javascript.js',
+        builderPath: 'internal/builder/javascript',
+        doctorModule: 'internal/doctor/javascript/doctor.js',
+        doctorProfiles: ['javascript-source'],
+        unitGlobs: ['tests/unit/discovery/javascript'],
+        negativeRequired: true,
+        contractFamily: 'javascript',
+        labValidation: labOk(),
+        readmeRow: 'JavaScript',
+        veracodePackagingSection: 'JavaScript',
+        veracodeE2E: false
+      },
+      new Set(['javascript-source']),
+      'JavaScript',
+      'JavaScript'
+    );
+    assert.deepEqual(missing, []);
+    assert.ok(!missing.some((m) => /integrationFixture|goldenArtifacts|cases\.json|test-matrix/i.test(m)));
+  });
+
+  it('requires labValidation keys when present for beta', () => {
+    const missing = validateCapability(
+      'javascript',
+      {
+        status: 'beta',
+        buildRequired: false,
+        packagingRequired: true,
+        discoveryDetector: 'internal/discovery/detectors/javascript.js',
+        builderPath: 'internal/builder/javascript',
+        doctorModule: 'internal/doctor/javascript/doctor.js',
+        doctorProfiles: ['javascript-source'],
+        unitGlobs: ['tests/unit/discovery/javascript'],
+        negativeRequired: true,
+        contractFamily: 'javascript',
+        labValidation: { required: true },
+        readmeRow: 'JavaScript',
+        veracodePackagingSection: 'JavaScript',
+        veracodeE2E: false
+      },
+      new Set(['javascript-source']),
+      'JavaScript',
+      'JavaScript'
+    );
+    assert.ok(missing.some((m) => /labValidation\./.test(m)));
   });
 
   it('exports FEATURE_COMPLETENESS_FAILED code', () => {
@@ -84,14 +143,11 @@ describe('feature-completeness', () => {
         unitGlobs: ['tests/unit/discovery/javascript'],
         negativeRequired: true,
         contractFamily: 'javascript',
-        integrationFixtureRoot: 'tests/fixtures/integration/javascript',
-        goldenArtifactsRoot: 'tests/artifacts/javascript',
-        testMatrixKey: 'javascript',
+        labValidation: labOk(),
         readmeRow: 'JavaScript',
         veracodePackagingSection: 'JavaScript',
         veracodeE2E: false
       },
-      { javascript: [{ case: 'x', profiles: ['full'] }] },
       new Set(['javascript-source']),
       'JavaScript',
       'JavaScript'

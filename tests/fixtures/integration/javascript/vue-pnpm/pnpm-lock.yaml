@@ -1,8 +1,0 @@
-lockfileVersion: '9.0'
-
-importers:
-  .:
-    dependencies:
-      vue:
-        specifier: 3.5.12
-        version: 3.5.12

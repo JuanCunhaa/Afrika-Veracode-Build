@@ -31,7 +31,20 @@ Repository
 
 Novos builders/doctors da Fase 2 devem ser adicionados como sub-actions em `internal/builder/<nome>` e `internal/doctor/<nome>`, registrados no dispatcher — sem switch gigante no root.
 
-**Feature Completeness:** toda capacidade nova (linguagem, build system, Doctor rule, modulo relevante) deve completar o ciclo aplicavel documentado em [`FEATURE-COMPLETENESS.md`](FEATURE-COMPLETENESS.md) e ser registrada em [`schemas/capabilities.json`](../schemas/capabilities.json). O job CI `feature-completeness` falha com `FEATURE_COMPLETENESS_FAILED` se Beta/Stable estiver incompleto. Nao confundir _codigo parcial_ com _suporte oficial_.
+**Feature Completeness:** toda capacidade nova (linguagem, build system, Doctor rule, modulo relevante) deve completar o ciclo aplicavel documentado em [`FEATURE-COMPLETENESS.md`](FEATURE-COMPLETENESS.md) e ser registrada em [`schemas/capabilities.json`](../schemas/capabilities.json). O job CI `feature-completeness` falha com `FEATURE_COMPLETENESS_FAILED` se a Action Completeness (Beta/Stable local) estiver incompleta. Corpus de compatibilidade (integration/contract/golden/E2E) vive no Lab privado — ver [`TEST-LAB.md`](TEST-LAB.md).
+
+## Dual-repo quality
+
+```text
+Afrika-Veracode-Build          Afrika-Veracode-Build-Lab (private)
+  Local Gate (CI)                lab-gate.yml (integration/contract/…)
+       │                              ▲
+       └─ workflow_run success ───────┘
+            Lab Orchestrator (default branch + GitHub App)
+            Check: "Lab Compatibility Gate"
+```
+
+Branch protection: **Local Gate** + **Lab Compatibility Gate** ([BRANCH-PROTECTION.md](BRANCH-PROTECTION.md)).
 
 ## Precedencia
 

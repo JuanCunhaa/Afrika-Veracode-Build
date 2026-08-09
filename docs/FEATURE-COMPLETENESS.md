@@ -11,7 +11,7 @@ Source of truth declarativo: [`schemas/capabilities.json`](../schemas/capabiliti
 Validator automatico: `npm run check:completeness` (`tests/security/check-feature-completeness.js`)  
 Codigo de falha: `FEATURE_COMPLETENESS_FAILED`
 
-Relacionados: [ARCHITECTURE](ARCHITECTURE.md) · [TEST-MATRIX](TEST-MATRIX.md) · [BUILDER-DOCTOR-CONTRACT](BUILDER-DOCTOR-CONTRACT.md) · [VERACODE-PACKAGING](VERACODE-PACKAGING.md)
+Relacionados: [ARCHITECTURE](ARCHITECTURE.md) · [TEST-LAB](TEST-LAB.md) · [BRANCH-PROTECTION](BRANCH-PROTECTION.md) · [TEST-MIGRATION-MAP](TEST-MIGRATION-MAP.md) · [TEST-MATRIX](TEST-MATRIX.md) · [BUILDER-DOCTOR-CONTRACT](BUILDER-DOCTOR-CONTRACT.md) · [VERACODE-PACKAGING](VERACODE-PACKAGING.md)
 
 ---
 
@@ -40,9 +40,9 @@ RESEARCH → DISCOVERY → BUILD PLAN → BUILD/PACKAGE → DOCTOR
 | **Beta**         | Ciclo interno completo (gates abaixo), sem E2E Veracode real suficiente.                     | Somente com aviso Beta                  |
 | **Stable**       | Beta **mais** Veracode E2E real (Prescan accepted → Static Analysis Completed) + evidencias. | Sim                                     |
 
-Promover para **Stable** exige `veracodeE2E: true` em `capabilities.json` e evidencia em `tests/e2e/veracode/<id>/RESULT.md` (sem secrets/findings sensiveis).
+Promover para **Stable** exige `veracodeE2E: true` (e `labValidation.veracodeE2E: true`) em `capabilities.json`. Evidencia de E2E vive no Lab (`e2e/veracode/<id>/`), nao no Action repo.
 
-Nunca declarar Stable se o Feature Completeness Report nao permitir.
+Nunca declarar Stable se o Feature Completeness Report (Action + Lab) nao permitir.
 
 ---
 
@@ -63,14 +63,19 @@ Campos tipicos em `capabilities.json`:
 
 - `buildRequired` / `packagingRequired`
 - `discoveryDetector`, `builderPath`, `doctorModule`, `doctorProfiles`
-- `unitGlobs`, `negativeRequired`, `contractFamily`
-- `integrationFixtureRoot`, `goldenArtifactsRoot`, `testMatrixKey`
+- `unitGlobs`, `negativeRequired`, `contractFamily` (logical id for Lab)
+- `actionValidation`: `{ unit, security, negativeLogic }`
+- `labValidation`: `{ required, integrationSuite, contractSuite, goldenSuite, matrixKey, veracodeE2E }` — logical keys, not Action filesystem paths
 - `fingerprintRelevant`, `veracodePackagingSection`, `readmeRow`
 - `veracodeE2E`
 
-Frameworks novos (ex.: Quarkus) reusam Builder existente quando aplicavel — so Discovery/fixtures/matrix/docs extras.
+**Action Completeness** (`npm run check:completeness`) valida discovery/builder/doctor/unit/negative/docs e que `labValidation` declara as chaves obrigatorias. Nao exige fixtures/contract/golden/matrix no disco do Action.
 
-Modulos internos (ex.: Registry Auth Resolver) aplicam so gates relevantes (unit/negative/integration/security/docs) — sem Golden Artifact burocratico.
+**Lab Completeness** (no Lab) valida o corpus real contra o `capabilities.json` do SHA da Action.
+
+Frameworks novos (ex.: Quarkus) reusam Builder existente quando aplicavel — Discovery no Action; fixtures/matrix no Lab.
+
+Modulos internos (ex.: Registry Auth Resolver) aplicam so gates relevantes (unit/negative/security/docs) — sem Golden Artifact burocratico no Action.
 
 ---
 
@@ -83,19 +88,19 @@ Modulos internos (ex.: Registry Auth Resolver) aplicam so gates relevantes (unit
 3. BuildPlan
 4. Builder **ou** Packager (estrategia explicita; sem Builder falso)
 5. Doctor (ERROR / WARNING / INFO corretos; nao afirmar prescan completo)
-6. Unit tests (`tests/unit/discovery/<tech>/`, doctor)
-7. Negative tests (error **code**, nao so exit != 0)
-8. Integration fixture real (`tests/fixtures/integration/<tech>/`)
-9. Builder → Doctor contract
-10. Golden artifacts (podem ser gerados deterministicamente)
-11. Test Matrix (`tests/test-matrix.json` — PR representative, Full complete)
-12. Fingerprint / Config schema se manifests novos
-13. Secret leak tests se credenciais/registries/HTTP
-14. README + Compatibility Matrix + CHANGELOG
-15. `schemas/capabilities.json` atualizado
-16. `npm run check:completeness` PASS
+6. Unit tests (`tests/unit/discovery/<tech>/`, doctor) — Action
+7. Negative tests (error **code**, nao so exit != 0) — Action
+8. Integration apps no Lab (`applications/...`)
+9. Builder → Doctor contract no Lab (`contracts/builder-doctor/...`)
+10. Golden artifacts no Lab (`golden-artifacts/...`)
+11. Test Matrix no Lab (`matrix/test-matrix.json`)
+12. Fingerprint / Config schema se manifests novos — Action
+13. Secret leak tests se credenciais/registries/HTTP — Action
+14. README + Compatibility Matrix + CHANGELOG — Action
+15. `schemas/capabilities.json` com `actionValidation` + `labValidation`
+16. `npm run check:completeness` PASS (Action) + Lab Completeness PASS
 
-Para **Stable**: + Veracode E2E real.
+Para **Stable**: + Veracode E2E real no Lab.
 
 ### Nova versao (ex.: Java 27)
 
@@ -130,36 +135,34 @@ Sempre teste de regressao (Doctor→golden; Discovery→unit/fixture; Builder→
 - [ ] Builder/Packager (ou Build=N/A documentado)
 - [ ] Doctor
 - [ ] Unit + Negative
-- [ ] Integration fixture
-- [ ] Builder → Doctor contract PASS
-- [ ] Golden artifacts root
-- [ ] Entrada Full na Test Matrix
+- [ ] Integration apps no Lab
+- [ ] Builder → Doctor contract PASS no Lab
+- [ ] Golden artifacts no Lab
+- [ ] Entrada Full na Test Matrix do Lab
 - [ ] Fingerprint/schema quando aplicavel
 - [ ] Secret tests quando aplicavel
 - [ ] README + Compatibility + CHANGELOG + VERACODE-PACKAGING
-- [ ] Entrada `beta` em `capabilities.json`
-- [ ] `check:completeness` PASS
-- [ ] lint + Gate CI verde
+- [ ] Entrada `beta` em `capabilities.json` com `labValidation`
+- [ ] `check:completeness` PASS (Action)
+- [ ] lint + **Local Gate** verde + **Lab Compatibility Gate** verde
 
 ## Definition of Done — Stable
 
 Tudo de Beta **mais**:
 
-- [ ] Veracode E2E (artifact → Prescan accepted → Static Analysis Completed)
-- [ ] Evidencia sem secrets em `tests/e2e/veracode/<id>/`
-- [ ] `status: stable` + `veracodeE2E: true`
+- [ ] Veracode E2E (artifact → Prescan accepted → Static Analysis Completed) no Lab
+- [ ] Evidencia sem secrets em Lab `e2e/veracode/<id>/`
+- [ ] `status: stable` + `veracodeE2E: true` + `labValidation.veracodeE2E: true`
 
 ---
 
-## CI Gate
+## CI gates (dual)
 
-Job **`feature-completeness`** no workflow unico `CI` (`.github/workflows/ci.yml`):
+**Local Gate** (`CI` → job `local-gate`): quality, unit, negative, security, secret-leak, **feature-completeness** (Action Completeness).
 
-- Roda em paralelo nos perfis PR / push main / full / release
-- Entra em `gate.needs`
-- Release nao passa se Stable declarado estiver incompleto
+**Lab Compatibility Gate** (Checks API via `Lab Orchestrator`): Lab `lab-gate.yml` for the SHA.
 
-Veredito final do CI continua sendo o job **Gate**.
+Branch protection must require both — see [BRANCH-PROTECTION.md](BRANCH-PROTECTION.md).
 
 ---
 

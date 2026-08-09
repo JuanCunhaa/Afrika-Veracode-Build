@@ -4,6 +4,27 @@ Todas as mudancas notaveis deste projeto serao documentadas neste arquivo.
 
 O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e este projeto adota [Versionamento Semantico](https://semver.org/lang/pt-BR/).
 
+## [Unreleased]
+
+### Added
+
+- Trusted **Lab Orchestrator** (`.github/workflows/lab-orchestrator.yml`) + `scripts/lab/dispatch-and-wait.mjs` (GitHub App JWT, `return_run_details`, correlation fallback).
+- Docs: `docs/TEST-LAB.md`, `docs/BRANCH-PROTECTION.md`, `docs/TEST-MIGRATION-MAP.md`.
+- Unit tests for Lab dispatcher (`tests/unit/lab/`).
+
+### Changed
+
+- Externalized compatibility and real-application test laboratory to **Afrika-Veracode-Build-Lab**.
+- Integrated remote Lab validation via trusted Lab Orchestrator into **Lab Compatibility Gate** (required check alongside Local Gate).
+- CI final job renamed to **Local Gate**; contract/integration matrix jobs removed from Action CI.
+- `schemas/capabilities.json` uses `actionValidation` + `labValidation` (logical Lab keys).
+- Action Completeness no longer requires local integration/contract/golden/matrix paths.
+
+### Removed
+
+- `tests/fixtures/integration/`, `tests/artifacts/`, `tests/contract/` cases, `tests/test-matrix.json`, `tests/e2e/veracode/` (copied to Lab; Lost tests = 0).
+- Action scripts `run-builder-doctor-contract.js`, `run-integration-fixture.js`, `generate-integration-fixtures.js`, `resolve-test-matrix.js` (Lab owns them).
+
 ## [0.1.3] - 2026-08-07
 
 ### Added
