@@ -149,31 +149,31 @@ Não editar manualmente.
 Matriz referente à última certificação publicada (quando existir).
 Cobertura = **100% da matriz de suporte oficialmente declarada** — não “qualquer aplicação do mundo”.
 
-| Tecnologia | Versão | Discovery | Builder | Doctor | Veracode | Status |
-| --- | --- | ---: | ---: | ---: | ---: | --- |
-| Java + Maven | 8 | 🧪 | 🧪 | 🧪 | ⏳ | Beta |
-| Java + Maven | 11 | 🧪 | 🧪 | 🧪 | ⏳ | Beta |
-| Java + Maven | 17 | 🧪 | 🧪 | 🧪 | ⏳ | Beta |
-| Java + Maven | 21 | 🧪 | 🧪 | 🧪 | ⏳ | Beta |
-| Java + Maven | 25 | 🧪 | 🧪 | 🧪 | ⏳ | Experimental |
-| Java + Maven | 26 | 🧪 | 🧪 | 🧪 | ⏳ | Experimental |
-| Java + Gradle | 8 | 🧪 | 🧪 | 🧪 | ⏳ | Beta |
-| Java + Gradle | 11 | 🧪 | 🧪 | 🧪 | ⏳ | Beta |
-| Java + Gradle | 17 | 🧪 | 🧪 | 🧪 | ⏳ | Beta |
-| Java + Gradle | 21 | 🧪 | 🧪 | 🧪 | ⏳ | Beta |
-| Java + Gradle | 25 | 🧪 | 🧪 | 🧪 | ⏳ | Experimental |
-| Java + Gradle | 26 | 🧪 | 🧪 | 🧪 | ⏳ | Experimental |
-| JavaScript | Node 20 | 🧪 | 🧪 | 🧪 | ⏳ | Beta |
-| TypeScript | Node 20 | 🧪 | 🧪 | 🧪 | ⏳ | Beta |
-| .NET | 6 | 🧪 | 🧪 | 🧪 | ⏳ | Beta |
-| .NET | 7 | 🧪 | 🧪 | 🧪 | ⏳ | Beta |
-| .NET | 8 | 🧪 | 🧪 | 🧪 | ⏳ | Beta |
-| .NET | 9 | 🧪 | 🧪 | 🧪 | ⏳ | Experimental |
-| .NET | 10 | 🧪 | 🧪 | 🧪 | ⏳ | Experimental |
-| .NET Framework | 4.8 | 🧪 | 🧪 | 🧪 | ⏳ | Beta |
-| C++/CLI | — | 🧪 | ❌ | ❌ | ⏳ | Experimental |
-| Xamarin/MAUI | — | 🧪 | ❌ | ❌ | ⏳ | Experimental |
-| Python | — | ⏳ | ⏳ | ⏳ | ⏳ | Planejado |
+| Tecnologia     | Versão  | Discovery | Builder | Doctor | Veracode | Status       |
+| -------------- | ------- | --------: | ------: | -----: | -------: | ------------ |
+| Java + Maven   | 8       |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| Java + Maven   | 11      |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| Java + Maven   | 17      |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| Java + Maven   | 21      |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| Java + Maven   | 25      |        🧪 |      🧪 |     🧪 |       ⏳ | Experimental |
+| Java + Maven   | 26      |        🧪 |      🧪 |     🧪 |       ⏳ | Experimental |
+| Java + Gradle  | 8       |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| Java + Gradle  | 11      |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| Java + Gradle  | 17      |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| Java + Gradle  | 21      |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| Java + Gradle  | 25      |        🧪 |      🧪 |     🧪 |       ⏳ | Experimental |
+| Java + Gradle  | 26      |        🧪 |      🧪 |     🧪 |       ⏳ | Experimental |
+| JavaScript     | Node 20 |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| TypeScript     | Node 20 |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| .NET           | 6       |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| .NET           | 7       |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| .NET           | 8       |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| .NET           | 9       |        🧪 |      🧪 |     🧪 |       ⏳ | Experimental |
+| .NET           | 10      |        🧪 |      🧪 |     🧪 |       ⏳ | Experimental |
+| .NET Framework | 4.8     |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| C++/CLI        | —       |        🧪 |      ❌ |     ❌ |       ⏳ | Experimental |
+| Xamarin/MAUI   | —       |        🧪 |      ❌ |     ❌ |       ⏳ | Experimental |
+| Python         | —       |        ⏳ |      ⏳ |     ⏳ |       ⏳ | Planejado    |
 
 **Legenda**
 
@@ -193,6 +193,7 @@ Não inclui SCA, Upload & Scan, Sandbox, DAST ou outros produtos Veracode.
 Uma tecnologia só é considerada **Stable** após passar por Discovery, preparação do artifact, Doctor e validação real através do Veracode Pipeline Scan.
 
 Nenhuma release ainda foi certificada com Pipeline Scan real nesta árvore de evidências.
+
 <!-- SUPPORT_MATRIX:END -->
 
 ## Como utilizar

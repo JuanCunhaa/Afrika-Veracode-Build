@@ -36,7 +36,7 @@ permissions:
   checks: write
   actions: read
 
-  concurrency:
+concurrency:
   group: product-gate-${{ inputs.source_sha || github.run_id }}
   cancel-in-progress: true
 
