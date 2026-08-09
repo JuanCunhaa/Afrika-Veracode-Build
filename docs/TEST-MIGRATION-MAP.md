@@ -111,16 +111,21 @@ Committed invalid/golden binaries (if added later) live under Lab `invalid-artif
 
 ---
 
-## Parity checklist (fill at Phase J)
+## Parity checklist (Phase J)
 
 ```text
-Tests before:            TBD
-Action tests after:      TBD
-Lab tests after:         TBD
-Migrated:                TBD
+Integration apps:        144 → Lab 144 (Action 0)
+Golden artifacts:        8 → Lab 8
+Contract suites:         6 → Lab 6 (+ unit helper kept in Action)
+Matrix SoT:              → Lab matrix/test-matrix.json
+E2E placeholder:         → Lab e2e/veracode/
+Matrix unit tests:       → Lab tests/unit/matrix/ (6 PASS)
+Action unit+negative:    121 + 42 PASS locally
 Removed as duplicate:    0
 Lost tests:              0
 ```
+
+Full report: [`docs/DUAL-REPOSITORY-MIGRATION-REPORT.md`](DUAL-REPOSITORY-MIGRATION-REPORT.md)
 
 ---
 
