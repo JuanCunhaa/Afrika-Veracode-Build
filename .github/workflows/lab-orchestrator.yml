@@ -51,10 +51,12 @@ permissions:
   checks: write
   pull-requests: read
 
-# Group by source branch/PR so a new commit cancels the previous Lab wait.
+# Cancel only a superseded wait for the SAME CI event + SAME CI head tip.
+# Do NOT key only on branch: feature push and pull_request must both run
+# (different Branch Protection SHAs; intentional dual validation).
 # Do NOT fall back to github.sha (always default-branch tip for workflow_run).
 concurrency:
-  group: lab-orchestrator-${{ github.event.workflow_run.head_branch || inputs.source_ref || inputs.source_sha || github.run_id }}
+  group: lab-orchestrator-${{ github.event.workflow_run.event || github.event_name }}-${{ github.event.workflow_run.head_sha || inputs.source_sha || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -375,8 +377,17 @@ jobs:
           TIMEOUT_MS: '3600000'
         run: node scripts/lab/dispatch-and-wait.mjs
 
+      # Never publish a hard failure when this orchestrator was superseded (cancelled).
+      # The newer run owns the check for its SHA; writing failure here races Branch Protection.
       - name: Publish Lab Compatibility Gate check
-        if: always() && steps.ctx.outputs.skip != 'true' && steps.ctx.outputs.draft != 'true' && steps.ctx.outputs.fork != 'true' && steps.lab.outcome != 'skipped'
+        if: >-
+          always() &&
+          !cancelled() &&
+          steps.ctx.outputs.skip != 'true' &&
+          steps.ctx.outputs.draft != 'true' &&
+          steps.ctx.outputs.fork != 'true' &&
+          steps.lab.outcome != 'skipped' &&
+          steps.lab.outcome != 'cancelled'
         env:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ steps.ctx.outputs.source_sha }}

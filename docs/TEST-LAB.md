@@ -84,7 +84,7 @@ RELEASE / TAG    → Lab full → Veracode E2E → Release eligible
 
 Implementation: `scripts/lab/resolve-source-sha.mjs` (unit-tested). Orchestrator resolves `GET .../git/ref/pull/<n>/merge` for `pull_request` events.
 
-A new commit on the same branch cancels the previous in-flight Lab Orchestrator (`cancel-in-progress` by branch). If Local Gate fails, Lab is not dispatched and **Lab Compatibility Gate** is published as **failure** on the same policy SHA.
+A newer CI completion for the **same source event + same CI head tip** cancels the previous in-flight Lab Orchestrator. Feature push and `pull_request` do **not** cancel each other. Cancelled orchestrators do **not** publish a Lab Compatibility failure check. If Local Gate fails, Lab is not dispatched and **Lab Compatibility Gate** is published as **failure** on the same policy SHA.
 
 ---
 
