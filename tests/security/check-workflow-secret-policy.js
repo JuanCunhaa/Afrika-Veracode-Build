@@ -2,7 +2,7 @@
 
 /**
  * Ensures untrusted CI (ci.yml) never references Lab App / Veracode secrets,
- * and that only lab-orchestrator.yml may reference LAB_GITHUB_APP_*.
+ * and that only trusted orchestrator workflows may reference LAB_GITHUB_APP_*.
  *
  * Exit 1 on violation.
  */
@@ -23,6 +23,9 @@ const FORBIDDEN_IN_CI = [
 
 const LAB_APP_SECRETS = ['LAB_GITHUB_APP_PRIVATE_KEY', 'LAB_GITHUB_APP_ID', 'LAB_GITHUB_APP_INSTALLATION_ID'];
 
+/** Trusted workflows that may dispatch Lab / Veracode via GitHub App (never PR-owned). */
+const TRUSTED_LAB_ORCHESTRATORS = new Set(['lab-orchestrator.yml', 'product-gate.yml', 'release-certification.yml']);
+
 function read(rel) {
   return fs.readFileSync(path.join(WORKFLOWS, rel), 'utf8');
 }
@@ -38,11 +41,18 @@ function main() {
 
   const files = fs.readdirSync(WORKFLOWS).filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'));
   for (const f of files) {
-    if (f === 'lab-orchestrator.yml') continue;
+    if (TRUSTED_LAB_ORCHESTRATORS.has(f)) continue;
     const body = read(f);
     for (const secret of LAB_APP_SECRETS) {
       if (body.includes(secret)) {
-        errors.push(`${f} must not reference ${secret} (only lab-orchestrator.yml may)`);
+        errors.push(
+          `${f} must not reference ${secret} (only trusted orchestrators: ${[...TRUSTED_LAB_ORCHESTRATORS].join(', ')})`
+        );
+      }
+    }
+    for (const secret of ['VERACODE_API_KEY', 'VERACODE_API_ID']) {
+      if (body.includes(secret)) {
+        errors.push(`${f} must not reference ${secret} (Veracode secrets stay in Lab environment)`);
       }
     }
   }

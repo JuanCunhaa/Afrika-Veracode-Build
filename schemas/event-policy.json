@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "description": "Source-controlled Product Gate event policy. Veracode = Pipeline Scan (Static Analysis) only.",
+  "gates": {
+    "local": "Local Gate",
+    "lab": "Lab Compatibility Gate",
+    "veracode": "Veracode Pipeline E2E",
+    "product": "Product Quality Gate",
+    "productMain": "Product Main Gate",
+    "release": "Release Certification Gate"
+  },
+  "events": {
+    "push_non_main": {
+      "local": "required",
+      "lab": "pr",
+      "veracode": "none",
+      "gate": "product"
+    },
+    "pull_request_to_main": {
+      "local": "required",
+      "lab": "pr",
+      "veracode": "none",
+      "gate": "product"
+    },
+    "merge_group": {
+      "local": "required",
+      "lab": "pr",
+      "veracode": "none",
+      "gate": "product"
+    },
+    "push_main": {
+      "local": "required",
+      "lab": "full",
+      "veracode": "representative",
+      "gate": "productMain"
+    },
+    "release_candidate": {
+      "local": "required",
+      "lab": "full",
+      "veracode": "full",
+      "gate": "release"
+    },
+    "workflow_dispatch": {
+      "local": "configurable",
+      "lab": "configurable",
+      "veracode": "configurable",
+      "gate": "configurable"
+    }
+  },
+  "trustBoundary": {
+    "veracodeSecrets": ["VERACODE_API_ID", "VERACODE_API_KEY"],
+    "veracodeSecretsAllowedOn": ["trusted Lab workflow / environment veracode-pipeline-e2e"],
+    "neverOn": ["PR-owned workflow", "fork PR"]
+  },
+  "docsOnlyShortcut": {
+    "enabled": true,
+    "allowedPaths": ["README.md", "schemas/certification-status.json", "CHANGELOG.md", "docs/**"],
+    "note": "Docs-only shortcut applies only when changed files ⊆ allowedPaths. Any code change forces full gates."
+  }
+}

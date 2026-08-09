@@ -1,152 +1,206 @@
 # Afrika Veracode Build
 
-## Overview
+GitHub Action que prepara aplicações para análise estática na Veracode — do reconhecimento do projeto até um artifact validado e pronto para o fluxo de scan.
 
-`Afrika-Veracode-Build` e uma GitHub Action proprietaria que prepara aplicacoes para Static Analysis da Veracode: discovery, toolchain, restore, build, packaging e validacao preflight (Doctor).
+## O que é o Afrika Veracode Build?
 
-Ela **nao** substitui a [`Veracode-Connect`](https://github.com/Afrika-Tecnologia/Veracode-Connect). A responsabilidade termina no artifact Veracode-ready.
+O **Afrika Veracode Build** é uma GitHub Action criada para automatizar a preparação de aplicações para Static Analysis na Veracode.
 
-```text
-Repository
-  -> Afrika-Veracode-Build
-  -> artifact (.veracode-build/analysisPack.zip)
-  -> Veracode-Connect (Pipeline Scan / Upload & Scan / Gate)
-  -> Veracode
-```
+Ela identifica o projeto, prepara o build ou o empacotamento e valida se o artifact final está em condições adequadas para seguir para análise.
 
-## Problem
-
-Onboarding SAST na Veracode falha com frequencia na **preparacao** do artifact: linguagem, runtime, wrapper, debug symbols, PDB, lockfiles, registries privados, exclusao de testes/`node_modules`, Blazor WASM, etc.
-
-## Solution
-
-A Action:
+> A Action **não** executa o Pipeline Scan no uso normal. O Pipeline Scan é usado pela engenharia do produto como **certificação** de que o artifact é aceito pelo motor Veracode.
 
 ```text
-detecta -> configura -> restaura -> compila/empacota -> valida -> memoriza configuracao
+Repositório
+    ↓
+Afrika Veracode Build
+    ↓
+Artifact (.veracode-build/analysisPack.zip)
+    ↓
+Seu fluxo Veracode (ex.: Pipeline Scan / Upload & Scan)
 ```
 
-sempre que possivel em modo zero-config. Quando falha, emite codigo estruturado (`DEPENDENCY_AUTH_REQUIRED`, `AMBIGUOUS_PROJECT`, ...) com o que foi detectado e como corrigir.
+## Qual problema ele resolve?
 
-## Architecture
+Preparar um projeto para Static Analysis normalmente exige conhecer linguagem, versão, build system, dependências, estrutura do projeto, formato de artifact e requisitos específicos de packaging.
 
-Composite Action orquestradora + modulos em `internal/`:
+Configurações erradas podem resultar em:
 
-- validate-inputs / resolve-repo
-- discovery -> BuildPlan
-- builder registry (Maven, Gradle, JS/TS, .NET)
-- doctor registry
-- config-store remoto atualizavel (fingerprint SHA-256)
-- artifact + sanitize + summary
+- scans que não iniciam
+- módulos ausentes
+- artifacts incompletos
+- análise parcial
+- configuração manual repetida por projeto
 
-Detalhes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+A Action automatiza esse trabalho e reduz o atrito de onboarding SAST.
 
-## Supported Technologies
+## Como funciona?
 
-Status lifecycle ([Feature Completeness](docs/FEATURE-COMPLETENESS.md) · [`schemas/capabilities.json`](schemas/capabilities.json)):
+```text
+Repositório
+    ↓
+Discovery
+    ↓
+Builder
+    ↓
+Doctor
+    ↓
+Artifact pronto
+```
 
-| Technology    | Discovery | Build | Packaging |  Doctor | Status       |
-| ------------- | --------: | ----: | --------: | ------: | ------------ |
-| Java + Maven  |        ✅ |    ✅ |        ✅ |      ✅ | **Beta**     |
-| Java + Gradle |        ✅ |    ✅ |        ✅ |      ✅ | **Beta**     |
-| JavaScript    |        ✅ |   N/A |        ✅ |      ✅ | **Beta**     |
-| TypeScript    |        ✅ |   N/A |        ✅ |      ✅ | **Beta**     |
-| .NET C#       |        ✅ |    ✅ |        ✅ |      ✅ | **Beta**     |
-| .NET VB.NET   |        ✅ |    ✅ |        ✅ |      ✅ | **Beta**     |
-| ASP.NET       |        ✅ |    ✅ |        ✅ |      ✅ | **Beta**     |
-| Blazor WASM   |        ✅ |    ✅ |        ✅ |      ✅ | **Beta**     |
-| C++/CLI       |        🔎 |    ❌ |        ❌ | Parcial | Experimental |
-| Xamarin/MAUI  |        🔎 |    ❌ |        ❌ | Parcial | Experimental |
-| Python        |        ❌ |    ❌ |        ❌ |      ❌ | Planned      |
+1. **Discovery** entende como a aplicação está estruturada
+2. **Builder** utiliza essas informações para preparar o artifact
+3. **Doctor** faz a verificação final e aponta problemas que podem impedir ou prejudicar a análise
 
-**Beta** = ciclo interno completo (Discovery → Packager/Builder → Doctor → testes → matrix); **Stable** exige Veracode E2E real. Nenhuma linguagem nova entra como suporte oficial sem passar pelo Feature Completeness Contract (`npm run check:completeness`).
+Detalhes de arquitetura: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-## How It Works
+## Módulos
 
-1. Valida inputs (`config_mode`, `doctor_mode`, auth de config)
-2. Carrega Build Config remoto (se habilitado) e compara fingerprint
-3. Discovery (ou reuse de config)
-4. Setup de toolchain (SHA-pinned)
-5. Restore + Build/Packaging
-6. Doctor (requisitos **publicos** documentados)
-7. Gera/atualiza Build Config
-8. Outputs + `GITHUB_STEP_SUMMARY`
+### Discovery
 
-## Discovery
+O Discovery analisa automaticamente o repositório e identifica informações necessárias para a preparação, como:
 
-Detecta language, framework, runtime, buildSystem, packageManager, projectPath, strategy, required env **names**, confidence.
+- linguagem
+- runtime
+- framework
+- build system
+- package manager
+- estrutura do projeto
 
-Ambiguidade (ex.: multiplos `.sln`) falha com `AMBIGUOUS_PROJECT`.
+### Builder
 
-## Builder
+O Builder utiliza o resultado do Discovery para executar a estratégia adequada de preparação.
 
-- **Java Maven/Gradle:** Debug (source,lines,vars), wrappers, sem testes por default
-- **JS/TS:** source package legivel — **sem** `npm run build` / minify / bundle
-- **.NET moderno:** `dotnet publish -c Debug -p:UseAppHost=false`
-- **.NET Framework/ASP.NET:** Windows + precompile
-- **Blazor WASM:** `dotnet build` + `BlazorEnableCompression=false` (nao publish)
+Dependendo da tecnologia, isso pode significar compilar, restaurar dependências, publicar ou preparar um pacote de código-fonte.
 
-## Doctor
+O resultado é o artifact utilizado no restante do fluxo Veracode.
 
-Preflight verificavel a partir da documentacao publica. **Nao** reproduz o prescan proprietario da Veracode.
+### Doctor
 
-Estados: `READY` | `READY_WITH_WARNINGS` | `INVALID` | `UNKNOWN`
+O Doctor é a última etapa da preparação.
 
-Relatorio: `.veracode-build/doctor-result.json`
+Ele analisa o artifact produzido e verifica requisitos públicos de packaging e qualidade necessários para análise pela Veracode.
 
-## Build Config
+Estados possíveis:
 
-Repositorio proposto: `Afrika-Veracode-Build-Configs`  
-Path: `{org}/{repo}/build-config.json`  
-Atualizavel (nao write-once). Modes: `auto` | `refresh` | `readonly` | `disabled`.
+- `READY`
+- `READY_WITH_WARNINGS`
+- `INVALID`
 
-Nunca persiste secret values — apenas nomes de variaveis.
+Documentação técnica: [docs/VERACODE-PACKAGING.md](docs/VERACODE-PACKAGING.md) · [docs/BUILDER-DOCTOR-CONTRACT.md](docs/BUILDER-DOCTOR-CONTRACT.md)
 
-Ver [docs/CONFIG-SCHEMA.md](docs/CONFIG-SCHEMA.md).
+## Build Config: reutilização inteligente da configuração
 
-## Private Package Registries
+Na primeira execução, a Action precisa descobrir como o projeto deve ser preparado.
 
-Exponha tokens via `env:`:
+Depois que uma configuração válida é encontrada e o Doctor confirma o artifact, essa configuração pode ser armazenada.
+
+Nas próximas execuções, quando o projeto continua compatível com aquela configuração, a Action pode reutilizá-la.
+
+```text
+Primeira execução
+
+Discovery → Builder → Doctor → Build Config salvo
+
+Depois
+
+Build Config reutilizado → Builder → Doctor
+```
+
+Isso reduz redescoberta desnecessária, tempo de preparação, variações de configuração e trabalho manual.
+
+A configuração pode ser reutilizada **enquanto continuar válida**. Quando a Action identifica que precisa redescobrir o projeto, o Discovery é executado novamente.
+
+### Formato e repositório
+
+- Formato: **JSON** (`build-config.json`)
+- Caminho remoto: `<owner>/<repository>/build-config.json`
+- Por padrão, a Action utiliza o repositório **Afrika-Veracode-Build-Configs**
+- O repositório é **configurável** via input `config_repo`
+
+Detalhes: [docs/CONFIG-SCHEMA.md](docs/CONFIG-SCHEMA.md)
+
+### Segurança
+
+O Build Config **não** armazena credenciais.
+
+Ele pode registrar os **nomes** das variáveis de ambiente necessárias, mas nunca password, token, API key ou private key.
+
+### Exemplo com GitHub App (recomendado)
 
 ```yaml
-env:
-  NUGET_TOKEN: ${{ secrets.NUGET_TOKEN }}
-  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-  MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
-  MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+- uses: JuanCunhaa/Afrika-Veracode-Build@<FULL_COMMIT_SHA>
+  with:
+    config_mode: auto
+    config_org: MinhaOrganizacao
+    config_github_app_id: ${{ secrets.BUILD_CONFIG_GITHUB_APP_ID }}
+    config_github_app_private_key: ${{ secrets.BUILD_CONFIG_GITHUB_APP_PRIVATE_KEY }}
+    config_github_app_installation_id: ${{ secrets.BUILD_CONFIG_GITHUB_APP_INSTALLATION_ID }}
 ```
 
-Nunca passe secret values em `build_command` / inputs.
+## Tecnologias e versões suportadas
 
-## Inputs
+<!-- SUPPORT_MATRIX:START -->
+<!--
+Esta seção é gerada automaticamente.
+Não editar manualmente.
+-->
 
-Principais (lista completa em `action.yml`):
+Matriz referente à última certificação publicada (quando existir).
+Cobertura = **100% da matriz de suporte oficialmente declarada** — não “qualquer aplicação do mundo”.
 
-| Input                        | Default                           | Descricao                                    |
-| ---------------------------- | --------------------------------- | -------------------------------------------- |
-| `source`                     | `.`                               | Raiz do codigo                               |
-| `project_path`               | `.`                               | Projeto relativo                             |
-| `language`                   | `auto`                            | java / javascript / typescript / dotnet      |
-| `java_package_mode`          | `compiled`                        | compiled \| source (sem fallback silencioso) |
-| `run_tests`                  | `false`                           | Executa testes no build                      |
-| `artifact_name`              | `analysisPack.zip`                | Nome do ZIP                                  |
-| `artifact_output_dir`        | `.veracode-build`                 | Saida                                        |
-| `artifact_path`              |                                   | Doctor-only mode                             |
-| `config_mode`                | `auto`                            | auto/refresh/readonly/disabled               |
-| `config_org` / `config_repo` | / `Afrika-Veracode-Build-Configs` | Config store                                 |
-| `config_github_app_*`        |                                   | GitHub App preferencial                      |
-| `config_github_token`        |                                   | PAT fallback                                 |
-| `doctor_mode`                | `standard`                        | standard \| strict                           |
-| `fail_on_doctor_warning`     | `false`                           | Falha em warnings                            |
-| hooks `pre_*` / `*_command`  |                                   | Custom commands (trusted workflows)          |
+| Tecnologia     | Versão  | Discovery | Builder | Doctor | Veracode | Status       |
+| -------------- | ------- | --------: | ------: | -----: | -------: | ------------ |
+| Java + Maven   | 8       |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| Java + Maven   | 11      |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| Java + Maven   | 17      |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| Java + Maven   | 21      |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| Java + Maven   | 25      |        🧪 |      🧪 |     🧪 |       ⏳ | Experimental |
+| Java + Maven   | 26      |        🧪 |      🧪 |     🧪 |       ⏳ | Experimental |
+| Java + Gradle  | 8       |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| Java + Gradle  | 11      |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| Java + Gradle  | 17      |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| Java + Gradle  | 21      |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| Java + Gradle  | 25      |        🧪 |      🧪 |     🧪 |       ⏳ | Experimental |
+| Java + Gradle  | 26      |        🧪 |      🧪 |     🧪 |       ⏳ | Experimental |
+| JavaScript     | Node 20 |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| TypeScript     | Node 20 |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| .NET           | 6       |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| .NET           | 7       |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| .NET           | 8       |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| .NET           | 9       |        🧪 |      🧪 |     🧪 |       ⏳ | Experimental |
+| .NET           | 10      |        🧪 |      🧪 |     🧪 |       ⏳ | Experimental |
+| .NET Framework | 4.8     |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| C++/CLI        | —       |        🧪 |      ❌ |     ❌ |       ⏳ | Experimental |
+| Xamarin/MAUI   | —       |        🧪 |      ❌ |     ❌ |       ⏳ | Experimental |
+| Python         | —       |        ⏳ |      ⏳ |     ⏳ |       ⏳ | Planejado    |
 
-## Outputs
+**Legenda**
 
-`language`, `framework`, `runtime_version`, `build_system`, `package_manager`, `packaging_strategy`, `project_path`, `restore_status`, `build_status`, `artifact_path`, `artifact_name`, `artifact_status`, `doctor_status`, `doctor_warnings`, `config_source`, `config_status`, `config_path`, `required_env_vars`, `discovery_confidence`
+- ✅ Validado
+- 🧪 Em validação / Beta / Experimental
+- ⏳ Ainda não certificado
+- ❌ Não suportado / não implementado
 
-## Examples
+**Veracode** = validação realizada através do Veracode Pipeline Scan (Static Analysis).
+Uma linha só recebe Veracode ✅ quando **todos** os casos de certificação obrigatórios daquela linha passam (ex.: JAR e WAR).
+Não inclui SCA, Upload & Scan, Sandbox, DAST ou outros produtos Veracode.
 
-### Zero-config
+**Builder** inclui preparação/empacotamento de código-fonte (ex.: JavaScript/TypeScript), mesmo quando não há compilação tradicional.
+
+**Como validamos o suporte**
+
+Uma tecnologia só é considerada **Stable** após passar por Discovery, preparação do artifact, Doctor e validação real através do Veracode Pipeline Scan.
+
+Nenhuma release ainda foi certificada com Pipeline Scan real nesta árvore de evidências.
+
+<!-- SUPPORT_MATRIX:END -->
+
+## Como utilizar
+
+### Exemplo mínimo
+
+Prefira **pinning por SHA completo** do commit (não use `@main`).
 
 ```yaml
 permissions:
@@ -157,112 +211,74 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - name: Prepare Veracode Artifact
-        id: veracode_build
-        uses: JuanCunhaa/Afrika-Veracode-Build@<FULL_COMMIT_SHA>
+
+      - uses: JuanCunhaa/Afrika-Veracode-Build@<FULL_COMMIT_SHA>
+        with:
+          source: .
 ```
 
-### Private NuGet
+### Saída principal
 
-```yaml
-- name: Prepare Veracode Artifact
-  id: veracode_build
-  uses: JuanCunhaa/Afrika-Veracode-Build@<FULL_COMMIT_SHA>
-  env:
-    NUGET_TOKEN: ${{ secrets.NUGET_TOKEN }}
-```
-
-### Config Store (GitHub App)
-
-```yaml
-- uses: JuanCunhaa/Afrika-Veracode-Build@<FULL_COMMIT_SHA>
-  with:
-    config_mode: auto
-    config_org: Afrika-Tecnologia
-    config_github_app_id: ${{ secrets.BUILD_CONFIG_GITHUB_APP_ID }}
-    config_github_app_private_key: ${{ secrets.BUILD_CONFIG_GITHUB_APP_PRIVATE_KEY }}
-    config_github_app_installation_id: ${{ secrets.BUILD_CONFIG_GITHUB_APP_INSTALLATION_ID }}
-```
-
-## Integration with Veracode-Connect
-
-```yaml
-- name: Prepare Veracode Artifact
-  id: veracode_build
-  uses: JuanCunhaa/Afrika-Veracode-Build@<FULL_COMMIT_SHA>
-
-- name: Veracode
-  uses: Afrika-Tecnologia/Veracode-Connect@<FULL_COMMIT_SHA>
-  with:
-    enable_auto_packager: 'false'
-    scan_file: ${{ steps.veracode_build.outputs.artifact_path }}
-    veracode_api_id: ${{ secrets.VERACODE_API_ID }}
-    veracode_api_key: ${{ secrets.VERACODE_API_KEY }}
-```
-
-## Development / Unit Tests
-
-Requisitos: Node.js 20+.
-
-```bash
-npm ci
-npm test                 # unit + negative (node:test)
-npm run test:unit        # somente tests/unit (inclui scripts/lab dispatcher)
-npm run test:negative    # somente tests/negative
-npm run test:coverage    # coverage statement/branch (experimental)
-npm run lint
-npm run format:check
-npm run check:completeness   # Action Feature Completeness
-npm run check:action-pinning
-```
-
-Os unit tests vivem em `tests/unit/` (discovery, build-plan, doctor, fingerprint, config, sanitize, utils, security/completeness, lab dispatcher) com fixtures em `tests/fixtures/unit/`. Os negative tests vivem em `tests/negative/` e provam falhas com error codes corretos (`UNSUPPORTED_LANGUAGE`, `AMBIGUOUS_PROJECT`, `DEPENDENCY_AUTH_REQUIRED`, `DOCTOR_FAILED`, …) e a distincao ERROR vs WARNING do Doctor. Sao rapidos, determinísticos e **nao** chamam a Veracode, registries externos nem credentials reais.
-
-**Development validation (dual-repo):**
+A principal saída é:
 
 ```text
-Feature branch push  → Local Gate + Lab suite=pr
-PR → main            → Local Gate + Lab suite=pr
-Push main            → Local Gate + Lab suite=full
-Release candidate    → Lab full + Veracode E2E (separate, when enabled)
+.veracode-build/analysisPack.zip
 ```
 
-Trusted **Lab Orchestrator** (default branch + GitHub App) dispatches the private Lab; check **Lab Compatibility Gate** is published on the Action SHA. Compatibility Lab uses realistic laboratory apps (not customer repos) and does not replace Veracode Cloud E2E. Docs: [TEST-LAB](docs/TEST-LAB.md) · [BRANCH-PROTECTION](docs/BRANCH-PROTECTION.md) · [FEATURE-COMPLETENESS](docs/FEATURE-COMPLETENESS.md).
+Esse artifact pode ser utilizado no restante do fluxo Veracode.
 
-## Security
+Outros outputs úteis incluem `doctor_status`, `artifact_path`, `language`, `runtime_version` e `config_status`. Lista completa em `action.yml`.
 
-- Least privilege: consumidores tipicos com `contents: read`
-- Config store via GitHub App dedicado (Contents R/W apenas no repo de configs)
-- SHA pinning de Actions externas
-- Sem `curl | bash`
-- Sem telemetria externa
-- Codigo do repositorio escaneado deve ser confiavel antes de expor secrets de registry
-- Evite `pull_request_target` + checkout de fork + secrets
+### Registries privados
 
-Ver [SECURITY.md](SECURITY.md).
+Exponha tokens via `env:` do job — nunca em inputs de comando:
 
-## Veracode Packaging References
+```yaml
+env:
+  NUGET_TOKEN: ${{ secrets.NUGET_TOKEN }}
+  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+  MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+  MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+```
 
-Documentacao oficial usada pela Action: [docs/VERACODE-PACKAGING.md](docs/VERACODE-PACKAGING.md)
+## Integração no fluxo Veracode
 
-Last verified: **2026-08-07**
+O Afrika Veracode Build termina no artifact validado pelo Doctor.
 
-Termo de saida do Doctor:
+A etapa seguinte (Pipeline Scan, Upload & Scan, gates de política, etc.) permanece no seu pipeline — por exemplo via [Veracode-Connect](https://github.com/Afrika-Tecnologia/Veracode-Connect) ou integração equivalente.
 
-> Veracode-ready according to documented packaging requirements
+A certificação interna do produto (Pipeline Scan E2E) valida que as tecnologias **Stable** realmente produzem artifacts aceitos pelo motor Veracode. Isso é garantia de qualidade do produto, não uma etapa do uso diário da Action.
 
-## Limitations
+## Documentação adicional
 
-- Doctor nao substitui o prescan da Veracode
-- Java source scan so com `java_package_mode=source` (sem fallback silencioso)
-- .NET Framework / ASP.NET classico exigem runner Windows
-- C++/CLI, Xamarin, MAUI: detectados como `NOT_IMPLEMENTED` (Fase 2)
-- Custom commands executam shell arbitrario — use apenas em workflows confiaveis
+| Documento                                                  | Conteúdo                           |
+| ---------------------------------------------------------- | ---------------------------------- |
+| [ARCHITECTURE](docs/ARCHITECTURE.md)                       | Arquitetura interna                |
+| [CONFIG-SCHEMA](docs/CONFIG-SCHEMA.md)                     | Schema do Build Config             |
+| [FEATURE-COMPLETENESS](docs/FEATURE-COMPLETENESS.md)       | Contrato de completude de features |
+| [TEST-LAB](docs/TEST-LAB.md)                               | Laboratório de qualidade           |
+| [VERACODE-PACKAGING](docs/VERACODE-PACKAGING.md)           | Requisitos públicos de packaging   |
+| [BUILDER-DOCTOR-CONTRACT](docs/BUILDER-DOCTOR-CONTRACT.md) | Contrato Builder → Doctor          |
+| [TROUBLESHOOTING](docs/TROUBLESHOOTING.md)                 | Resolução de problemas             |
 
-## Roadmap
+## Desenvolvimento e créditos
 
-Fase 2 (estrategias previstas): PHP/Python/Perl/Apex/SQL/Classic ASP/COBOL/RPG/VB6 (`SOURCE_PACKAGE`); Scala/Groovy/Kotlin/Android/Apple/Dart/ColdFusion/Xamarin/MAUI (`BUILD_REQUIRED`); Go (`SOURCE_COMPILABLE`); C/C++ preprocess/binary; Ruby on Rails (`SPECIAL_PREPARATION`); React Native (`HYBRID`).
+Desenvolvido por **Juan Cunha**
 
-## License
+- E-mail: juan.cunha@afrikatec.com.br
+- GitHub: [JuanCunhaa](https://github.com/JuanCunhaa)
 
-Proprietary — Copyright (c) 2026 Juan Cunha. Ver [LICENSE](LICENSE).
+Para contribuir com o código da Action, consulte [CONTRIBUTING.md](CONTRIBUTING.md) e [SECURITY.md](SECURITY.md).
+
+Gates de qualidade do produto:
+
+- **Local Gate** — testes e políticas no repositório da Action
+- **Lab Compatibility Gate** — compatibilidade com aplicações reais
+- **Product Quality Gate** / **Product Main Gate** — visão consolidada por evento
+- **Release Certification Gate** — elegibilidade de release (Lab full + Pipeline Scan full)
+
+## Licença
+
+Software proprietário. Todos os direitos reservados © Juan Cunha / Afrika Tecnologia.
+
+Uso, cópia, modificação e distribuição somente com autorização expressa.

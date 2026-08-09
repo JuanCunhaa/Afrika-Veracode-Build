@@ -1,0 +1,241 @@
+# Product Quality / Main Gate — synthetic check over Local + Lab (+ Veracode on main).
+# Child checks remain visible: Local Gate, Lab Compatibility Gate, Veracode Pipeline E2E.
+#
+# Automatic path: after Lab Orchestrator completes successfully.
+# Feature/PR/merge_group → Product Quality Gate (Local already implied by orchestrator).
+# Push main → also runs Veracode representative → Product Main Gate.
+name: Product Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Full 40-hex SHA
+        type: string
+        required: true
+      mode:
+        description: product | productMain | release
+        type: choice
+        options: [product, productMain, release]
+        default: product
+      veracode_profile:
+        description: none | representative | full
+        type: choice
+        options: [none, representative, full]
+        default: none
+      docs_only:
+        description: Skip Veracode when true (docs-only PRs — still requires Local)
+        type: boolean
+        default: false
+
+# Automatic Product Quality / Main Gate publishing is owned by lab-orchestrator.yml
+# (SHA-bound to the Action under test). This workflow remains for manual / release paths.
+
+permissions:
+  contents: read
+  checks: write
+  actions: read
+
+concurrency:
+  group: product-gate-${{ inputs.source_sha || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  product-gate:
+    name: Product Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout trusted default branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+
+      - name: Resolve context
+        id: ctx
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WR_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          WR_EVENT: ${{ github.event.workflow_run.event }}
+          WR_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          WR_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          WR_DISPLAY: ${{ github.event.workflow_run.display_title }}
+          INPUT_SHA: ${{ inputs.source_sha }}
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_VERACODE: ${{ inputs.veracode_profile }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          SKIP='false'
+          SHA=''
+          MODE='product'
+          VERACODE='none'
+          LAB_OK='false'
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            SHA="${INPUT_SHA}"
+            MODE="${INPUT_MODE:-product}"
+            VERACODE="${INPUT_VERACODE:-none}"
+            LAB_OK='true'
+          else
+            if [ "${WR_CONCLUSION}" != "success" ]; then
+              SKIP='true'
+              SHA="${WR_HEAD_SHA}"
+            else
+              SHA="${WR_HEAD_SHA}"
+              LAB_OK='true'
+              if [ "${WR_HEAD_BRANCH}" = "${DEFAULT_BRANCH}" ] && [ "${WR_EVENT}" = "push" ]; then
+                MODE='productMain'
+                VERACODE='representative'
+              else
+                MODE='product'
+                VERACODE='none'
+              fi
+            fi
+          fi
+
+          if ! [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::invalid source sha"
+            exit 1
+          fi
+
+          CHECK_NAME='Product Quality Gate'
+          if [ "$MODE" = "productMain" ]; then CHECK_NAME='Product Main Gate'; fi
+          if [ "$MODE" = "release" ]; then CHECK_NAME='Release Certification Gate'; fi
+          {
+            echo "skip=${SKIP}"
+            echo "source_sha=${SHA}"
+            echo "mode=${MODE}"
+            echo "veracode=${VERACODE}"
+            echo "lab_ok=${LAB_OK}"
+            echo "check_name=${CHECK_NAME}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish Product Gate failure (Lab Orchestrator did not succeed)
+        if: steps.ctx.outputs.skip == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.ctx.outputs.source_sha }}
+          REPO: ${{ github.repository }}
+          NAME: ${{ steps.ctx.outputs.check_name }}
+        run: |
+          set -euo pipefail
+          BODY=$(jq -n --arg sha "$SHA" --arg name "$NAME" '{
+            name: $name,
+            head_sha: $sha,
+            status: "completed",
+            conclusion: "failure",
+            output: {
+              title: "Lab Compatibility Gate did not succeed",
+              summary: "Product Gate requires Local Gate + Lab Compatibility Gate. Lab Orchestrator did not succeed for this SHA."
+            }
+          }')
+          curl -fsSL -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${REPO}/check-runs" \
+            -d "$BODY"
+          exit 1
+
+      - name: Publish in-progress check
+        if: steps.ctx.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.ctx.outputs.source_sha }}
+          REPO: ${{ github.repository }}
+          NAME: ${{ steps.ctx.outputs.check_name }}
+          MODE: ${{ steps.ctx.outputs.mode }}
+          VERACODE: ${{ steps.ctx.outputs.veracode }}
+        run: |
+          set -euo pipefail
+          BODY=$(jq -n --arg sha "$SHA" --arg name "$NAME" --arg mode "$MODE" --arg v "$VERACODE" '{
+            name: $name,
+            head_sha: $sha,
+            status: "in_progress",
+            output: {
+              title: ($name + " running"),
+              summary: ("mode=`" + $mode + "` veracode=`" + $v + "`")
+            }
+          }')
+          curl -fsSL -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${REPO}/check-runs" \
+            -d "$BODY"
+
+      - name: Dispatch Veracode Pipeline E2E (main / release)
+        id: veracode
+        if: steps.ctx.outputs.skip != 'true' && steps.ctx.outputs.veracode != 'none'
+        env:
+          LAB_GITHUB_APP_ID: ${{ secrets.LAB_GITHUB_APP_ID }}
+          LAB_GITHUB_APP_PRIVATE_KEY: ${{ secrets.LAB_GITHUB_APP_PRIVATE_KEY }}
+          LAB_GITHUB_APP_INSTALLATION_ID: ${{ secrets.LAB_GITHUB_APP_INSTALLATION_ID }}
+          LAB_OWNER: JuanCunhaa
+          LAB_REPO: Afrika-Veracode-Build-Lab
+          LAB_WORKFLOW_FILE: veracode-pipeline-e2e.yml
+          LAB_REF: main
+          SOURCE_REPOSITORY: ${{ github.repository }}
+          SOURCE_SHA: ${{ steps.ctx.outputs.source_sha }}
+          VERACODE_PROFILE: ${{ steps.ctx.outputs.veracode }}
+          CORRELATION_ID: veracode-${{ github.run_id }}-${{ github.run_attempt }}
+          POLL_INTERVAL_MS: '20000'
+          TIMEOUT_MS: '7200000'
+        run: node scripts/lab/dispatch-veracode-and-wait.mjs
+
+      - name: Finalize Product Gate check
+        if: always() && steps.ctx.outputs.skip != 'true' && !cancelled()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.ctx.outputs.source_sha }}
+          REPO: ${{ github.repository }}
+          NAME: ${{ steps.ctx.outputs.check_name }}
+          MODE: ${{ steps.ctx.outputs.mode }}
+          VERACODE: ${{ steps.ctx.outputs.veracode }}
+          V_OUTCOME: ${{ steps.veracode.outcome }}
+          LAB_OK: ${{ steps.ctx.outputs.lab_ok }}
+        run: |
+          set -euo pipefail
+          OK=true
+          if [ "$LAB_OK" != "true" ]; then OK=false; fi
+          if [ "$VERACODE" != "none" ]; then
+            if [ "${V_OUTCOME}" != "success" ]; then OK=false; fi
+          fi
+          if [ "$OK" = "true" ]; then
+            CONCLUSION=success
+            TITLE="${NAME} passed"
+          else
+            CONCLUSION=failure
+            TITLE="${NAME} failed"
+          fi
+          BODY=$(jq -n \
+            --arg sha "$SHA" \
+            --arg name "$NAME" \
+            --arg conclusion "$CONCLUSION" \
+            --arg title "$TITLE" \
+            --arg mode "$MODE" \
+            --arg v "$VERACODE" \
+            --arg vo "${V_OUTCOME:-skipped}" \
+            '{
+              name: $name,
+              head_sha: $sha,
+              status: "completed",
+              conclusion: $conclusion,
+              output: {
+                title: $title,
+                summary: ("Local Gate + Lab Compatibility Gate required.\n\nMode: `" + $mode + "`\nVeracode profile: `" + $v + "`\nVeracode job: `" + $vo + "`\n\nChild checks remain authoritative.")
+              }
+            }')
+          curl -fsSL -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${REPO}/check-runs" \
+            -d "$BODY"
+          if [ "$CONCLUSION" != "success" ]; then exit 1; fi

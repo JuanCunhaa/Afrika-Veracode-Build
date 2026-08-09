@@ -137,7 +137,7 @@
       "contractFamily": "dotnet",
       "fingerprintRelevant": true,
       "veracodePackagingSection": ".NET",
-      "readmeRow": ".NET C#",
+      "readmeRow": ".NET",
       "veracodeE2E": false,
       "actionValidation": {
         "unit": true,
@@ -167,7 +167,7 @@
       "contractFamily": "dotnet",
       "fingerprintRelevant": true,
       "veracodePackagingSection": ".NET",
-      "readmeRow": "ASP.NET",
+      "readmeRow": ".NET Framework",
       "veracodeE2E": false,
       "actionValidation": {
         "unit": true,

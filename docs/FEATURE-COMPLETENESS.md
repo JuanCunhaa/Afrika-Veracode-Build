@@ -40,7 +40,7 @@ RESEARCH → DISCOVERY → BUILD PLAN → BUILD/PACKAGE → DOCTOR
 | **Beta**         | Ciclo interno completo (gates abaixo), sem E2E Veracode real suficiente.                     | Somente com aviso Beta                  |
 | **Stable**       | Beta **mais** Veracode E2E real (Prescan accepted → Static Analysis Completed) + evidencias. | Sim                                     |
 
-Promover para **Stable** exige `veracodeE2E: true` (e `labValidation.veracodeE2E: true`) em `capabilities.json`. Evidencia de E2E vive no Lab (`e2e/veracode/<id>/`), nao no Action repo.
+Promover para **Stable** exige `veracodeE2E: true` (e `labValidation.veracodeE2E: true`) em `capabilities.json`, **mais** evidência por linha em `schemas/support-matrix.json` + `schemas/certification-status.json` com `validatedRealVeracode=true` via **Veracode Pipeline Scan** (Static Analysis) no Lab. Nunca inferir Veracode PASS entre versões. Evidência de E2E vive no Lab; o README é gerado (`npm run docs:support:generate`), nunca editado à mão.
 
 Nunca declarar Stable se o Feature Completeness Report (Action + Lab) nao permitir.
 
