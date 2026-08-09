@@ -2,55 +2,106 @@
 
 Private quality lab: **`JuanCunhaa/Afrika-Veracode-Build-Lab`**.
 
-Product Action repo (**Afrika-Veracode-Build**) runs **Local Gate** only (unit, negative, security, completeness). Compatibility corpus (integration apps, Builder→Doctor contracts, golden artifacts, matrix, Veracode E2E) runs in the Lab after a **trusted orchestrator** on the Action default branch dispatches `lab-gate.yml`.
+Product Action repo (**Afrika-Veracode-Build**) runs **Local Gate** only (unit, negative, security, completeness). Compatibility corpus (integration apps, Builder→Doctor contracts, golden via contracts) runs in the Lab after a **trusted orchestrator** on the Action default branch dispatches `lab-gate.yml`.
 
-Related: [BRANCH-PROTECTION](BRANCH-PROTECTION.md) · [TEST-MIGRATION-MAP](TEST-MIGRATION-MAP.md) · [FEATURE-COMPLETENESS](FEATURE-COMPLETENESS.md)
+**Veracode Cloud E2E** is a separate trusted workflow in the Lab (`veracode-e2e.yml`) — not a Compatibility suite mode.
+
+Related: [BRANCH-PROTECTION](BRANCH-PROTECTION.md) · [TEST-MIGRATION-MAP](TEST-MIGRATION-MAP.md) · [FEATURE-COMPLETENESS](FEATURE-COMPLETENESS.md) · [TEST-MATRIX](TEST-MATRIX.md)
 
 ---
 
 ## Trusted orchestrator model
 
 ```text
-PR / push → workflow CI (Local Gate)
-                ↓ (workflow_run completed + success, same-repo)
-         Lab Orchestrator (default-branch code only)
-                ↓ GitHub App → workflow_dispatch lab-gate.yml
-         Afrika-Veracode-Build-Lab
-                ↓
-         Check run: "Lab Compatibility Gate" on Action SHA
+Code change
+    │
+    ▼
+Local CI → Local Gate
+    │ (workflow_run completed + success, same-repo)
+    ▼
+Trusted Lab Orchestrator (default-branch code only)
+    │ GitHub App → lab-gate.yml (suite=pr|full)
+    ▼
+Private Lab: checkout Action SHA → real apps → Builder → Doctor
+    │
+    ▼
+Check run: "Lab Compatibility Gate" on Action source_sha
 ```
 
 Rules:
 
-- Orchestrator workflow (`.github/workflows/lab-orchestrator.yml`) **never** checks out PR head for execution of dispatch logic.
+- Orchestrator (`.github/workflows/lab-orchestrator.yml`) **never** checks out PR head for dispatch logic.
 - Checkout uses `github.event.repository.default_branch` only.
-- Lab App secrets live only on the Action repo (or org) and are passed into `scripts/lab/dispatch-and-wait.mjs` — never into untrusted PR workflows as reusable secrets for fork code.
+- Lab App secrets live only on the Action repo and are used only in the orchestrator — never in `ci.yml` / PR-head workflows.
+- Checks API uses Action `GITHUB_TOKEN` (`checks:write`). App is installed on the **Lab** only (Actions R/W).
 - Script uses App JWT (RS256) + installation token; prefer **no** PAT.
 
-### Automatic per-commit flow (default)
+---
 
-Open a PR (or push to `main`). Every commit that finishes **Local Gate** automatically triggers Lab Orchestrator via `workflow_run` — no manual dispatch.
+## Compatibility suites (exactly two)
 
-| Event                              | Lab suite | Check on the commit SHA                                      |
-| ---------------------------------- | --------- | ------------------------------------------------------------ |
-| PR commit (`pull_request`)         | `pr`      | **Lab Compatibility Gate** (`in_progress` → success/failure) |
-| Push to `main`                     | `full`    | same                                                         |
-| Feature branch **without** open PR | —         | CI does not run (no Lab)                                     |
+| Suite  | Purpose                                            |
+| ------ | -------------------------------------------------- |
+| `pr`   | Representative fast compatibility (matrix profile) |
+| `full` | Complete officially declared compatibility matrix  |
 
-A new commit on the same branch cancels the previous in-flight Lab Orchestrator (`cancel-in-progress` by branch). If Local Gate fails, Lab is not dispatched and **Lab Compatibility Gate** is published as **failure** (not left pending).
+Case counts come from Lab `matrix/test-matrix.json` (resolve with Lab `resolve-test-matrix.js`). Do not hardcode counts in product docs.
 
-`workflow_dispatch` is only for maintainer re-runs / fork validation after review.
+Release eligibility = **full** success on the candidate SHA + **Veracode E2E** when enabled — E2E is not `suite=full`.
+
+### Limits (honest)
+
+- Lab apps are **realistic laboratory fixtures**, not customer production repos.
+- Compatibility Lab proves that SHA can process the known corpus (Discovery → BuildPlan → Builder → Artifact → Doctor) with real toolchains.
+- It does **not** prove every app in the world is compatible.
+- Normal compatibility tests use `CONFIG_MODE=disabled` (no remote config store).
+- Lab Gate does **not** receive Veracode / private registry / Config Store / App credentials for Action-under-test execution.
+
+---
+
+## Event → suite policy
+
+| Event                                                                      | Local Gate | Lab suite                | Notes                                                 |
+| -------------------------------------------------------------------------- | ---------- | ------------------------ | ----------------------------------------------------- |
+| Push branch ≠ `main`                                                       | yes        | `pr`                     | Feedback before opening a PR                          |
+| Pull request → `main` (opened / synchronize / reopened / ready_for_review) | yes        | `pr`                     | Lab tests **PR head SHA**                             |
+| Draft PR                                                                   | yes        | deferred                 | Check **DRAFT_PR_LAB_DEFERRED** (failure until ready) |
+| Merge group → `main`                                                       | yes        | `pr`                     | Combined commit validation                            |
+| Push `main`                                                                | yes        | `full`                   | Post-merge full matrix                                |
+| Manual orchestrator `workflow_dispatch`                                    | n/a        | `pr` or `full`           | Maintainer re-run / fork validation                   |
+| Lab schedule (`full-matrix.yml`)                                           | —          | `full`                   | Against Action `main` HEAD                            |
+| Release / tag path                                                         | yes        | `full` then separate E2E | E2E trusted-only                                      |
+
+Local CI on `pull_request` may use GitHub’s merge ref; Lab always validates **`workflow_run.head_sha`** (the Action commit under test).
+
+A new commit on the same branch cancels the previous in-flight Lab Orchestrator (`cancel-in-progress` by branch). If Local Gate fails, Lab is not dispatched and **Lab Compatibility Gate** is published as **failure**.
+
+---
+
+## Deduplication (same SHA + suite)
+
+Key: `JuanCunhaa/Afrika-Veracode-Build:<sha>:<suite>`
+
+Before dispatch, the orchestrator looks for an existing Lab Gate run whose run-name contains that SHA and suite:
+
+- **queued / in_progress** → wait on that run (no second dispatch)
+- **success** → reuse (push + PR synchronize on the same SHA)
+- **failure / cancelled** → allow a new dispatch
+
+Never reuse `pr` for `full` or a different SHA.
 
 ---
 
 ## GitHub App setup
 
-1. Create a GitHub App (org or user) dedicated to Lab dispatch.
-2. Permissions (Lab repo only; do **not** grant broad org write):
+1. Create a GitHub App dedicated to Lab dispatch.
+2. Permissions (Lab repo only):
    - **Metadata**: Read-only
-   - **Actions**: Read and write (dispatch workflows, read runs/jobs)
-3. Install the App on **`Afrika-Veracode-Build-Lab`** only.
-4. Generate a private key (PEM). Store in Action repo secrets (never commit).
+   - **Actions**: Read and write
+3. Install on **`Afrika-Veracode-Build-Lab`** only.
+4. Store PEM in Action repo secrets (never commit).
+
+Checks on the Action SHA are published with the Action workflow `GITHUB_TOKEN` (not the App).
 
 ### Secrets (Action repository)
 
@@ -60,28 +111,15 @@ A new commit on the same branch cancels the previous in-flight Lab Orchestrator 
 | `LAB_GITHUB_APP_PRIVATE_KEY`     | PEM private key (`\n` escapes OK)                               |
 | `LAB_GITHUB_APP_INSTALLATION_ID` | Optional; resolved via `GET /repos/{lab}/installation` if unset |
 
-Env defaults used by `scripts/lab/dispatch-and-wait.mjs`:
-
-- `LAB_OWNER=JuanCunhaa`
-- `LAB_REPO=Afrika-Veracode-Build-Lab`
-- `LAB_WORKFLOW_FILE=lab-gate.yml`
-- `LAB_REF=main`
-- `POLL_INTERVAL_MS=15000`
-- `TIMEOUT_MS=3600000`
-
 ---
 
-## Dispatch identity (`return_run_details` vs correlation fallback)
+## Dispatch identity
 
-**Primary:** `POST .../actions/workflows/lab-gate.yml/dispatches` with body including `"return_run_details": true`. Prefer `workflow_run_id` from a **200** response and poll that exact run.
+**Primary:** `return_run_details: true` → `workflow_run_id` → poll exact run.
 
-**Fallback only** when no `workflow_run_id` is returned (classic **204**): list recent `event=workflow_dispatch` runs created after dispatch and match `correlation_id` in `display_title` / `name`. The script logs clearly:
+**Fallback only** on classic **204**: correlation_id in `display_title` / `name` (`LAB_RUN_LOOKUP_FALLBACK`).
 
-```text
-LAB_RUN_LOOKUP_FALLBACK correlation_id=...
-```
-
-Lab `run-name` / titles should include `correlation_id` so fallback remains deterministic when two runs overlap.
+Check **details_url** points at the Lab workflow run HTML URL when available.
 
 Never log the private key, installation token, or `Authorization` header.
 
@@ -89,29 +127,26 @@ Never log the private key, installation token, or `Authorization` header.
 
 ## Fork PR policy
 
-Fork pull requests must **not** receive a green Lab check by skipping.
+1. Detect fork / foreign head repository on `pull_request`.
+2. Publish **Lab Compatibility Gate** `failure` / **PENDING_MAINTAINER_VALIDATION**.
+3. Maintainer re-runs Lab Orchestrator (`workflow_dispatch`) on the SHA after review.
 
-MVP behavior (Lab Orchestrator):
+---
 
-1. Detect `workflow_run.event == pull_request` and head repository is a fork (or different from Action repo).
-2. Publish check run named exactly **`Lab Compatibility Gate`** with `conclusion: failure` and title/summary **`PENDING_MAINTAINER_VALIDATION`**.
-3. Do **not** dispatch Lab with secrets in a way that trusts PR code; orchestrator still runs from default branch only.
-4. After review, a maintainer re-runs **Lab Orchestrator** (`workflow_dispatch`) on the candidate SHA.
+## Draft PR policy
 
-Required checks need `success` to pass branch protection — an explicit **failure** with `PENDING_MAINTAINER_VALIDATION` is intentional so a skip is never mistaken for PASS.
-
-Future evolution may run Lab for fork SHAs from the trusted orchestrator without exposing secrets to PR workflows.
+- Draft: Local Gate runs; Lab is **not** dispatched.
+- Publish Lab Compatibility Gate **failure** titled **DRAFT_PR_LAB_DEFERRED**.
+- On `ready_for_review`, CI + Lab `pr` run normally.
 
 ---
 
 ## Local development
 
 ```bash
-# Unit tests for the dispatcher (mocked fetch; no network)
 npm run test:unit
+npm run check:workflow-secrets
 ```
-
-Manual dispatch (with App secrets in env):
 
 ```bash
 export LAB_GITHUB_APP_ID=...

@@ -5,7 +5,7 @@ Required status checks for `main` (and release branches if used):
 | Check name                 | Source                                                                           | Meaning                                                                                  |
 | -------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | **Local Gate**             | Workflow `CI` → job `local-gate` (`name: Local Gate`)                            | Action-local quality (lint, unit, negative, security, secret-leak, feature-completeness) |
-| **Lab Compatibility Gate** | Workflow `Lab Orchestrator` → Checks API check run name `Lab Compatibility Gate` | Private Lab (`lab-gate.yml`) passed for the SHA                                          |
+| **Lab Compatibility Gate** | Workflow `Lab Orchestrator` → Checks API check run name `Lab Compatibility Gate` | Private Lab (`lab-gate.yml`) passed for the SHA (`pr` on PR / feature; `full` on main)   |
 
 Configure under **Settings → Branches → Branch protection rules**:
 
@@ -15,13 +15,16 @@ Configure under **Settings → Branches → Branch protection rules**:
 
 ## Notes
 
-- `Lab Compatibility Gate` is published automatically by the trusted orchestrator after every `CI` completion (same-repo PR commit or push to `main`). It is **not** a job inside `ci.yml`.
-- While Lab runs, the check appears as **in_progress** on the commit; then success or failure.
-- If Local Gate fails, Lab is not dispatched and `Lab Compatibility Gate` is published as **failure** (so the required check does not stay pending forever).
-- Fork PRs receive `Lab Compatibility Gate` with **failure** / `PENDING_MAINTAINER_VALIDATION` (see [TEST-LAB.md](TEST-LAB.md)). That is intentional: do not remove the Lab check from required list to “make forks green.”
+- `Lab Compatibility Gate` is published automatically after every successful `CI` (feature push, PR, merge_group, main). It is **not** a job inside `ci.yml`.
+- While Lab runs, the check appears as **in_progress**; `details_url` links to the Lab workflow run when available.
+- If Local Gate fails, Lab is not dispatched and `Lab Compatibility Gate` is published as **failure**.
+- Draft PRs get **DRAFT_PR_LAB_DEFERRED** (failure) until `ready_for_review`.
+- Fork PRs receive **PENDING_MAINTAINER_VALIDATION** (failure). See [TEST-LAB.md](TEST-LAB.md).
 - Do not use a skipped/neutral Lab outcome as a required-pass substitute.
+- Post-merge `full` on `main` does not undo a merge, but a failing main `full` means **main compatibility = BROKEN** and must block release until fixed.
+- Stable release also requires Veracode E2E when that environment is enabled (separate check name **Veracode E2E**).
 
 ## Related
 
-- [TEST-LAB.md](TEST-LAB.md) — App secrets, dispatch, fork policy
+- [TEST-LAB.md](TEST-LAB.md) — App secrets, event policy, fork/draft, dedupe
 - [FEATURE-COMPLETENESS.md](FEATURE-COMPLETENESS.md) — Action vs Lab validation split
