@@ -21,10 +21,14 @@ function findBuildFile(root) {
 }
 
 function detectJavaVersion(root, build) {
+  // VERSION_1_8 must be matched before VERSION_(\d+) (otherwise "1" is captured).
   const patterns = [
     /JavaLanguageVersion\.of\((\d+)\)/,
-    /sourceCompatibility\s*=\s*['"]?([\d.]+)/,
-    /targetCompatibility\s*=\s*['"]?([\d.]+)/,
+    /sourceCompatibility\s*=\s*['"]([\d.]+)['"]/,
+    /targetCompatibility\s*=\s*['"]([\d.]+)['"]/,
+    /sourceCompatibility\s*=\s*(\d+(?:\.\d+)?)\b/,
+    /targetCompatibility\s*=\s*(\d+(?:\.\d+)?)\b/,
+    /JavaVersion\.VERSION_1_(\d+)/,
     /JavaVersion\.VERSION_(\d+)/,
     /jvmTarget\s*=\s*['"]([\d.]+)['"]/
   ];
