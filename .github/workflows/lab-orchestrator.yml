@@ -80,8 +80,8 @@ jobs:
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           set -euo pipefail
-          SKIP=false
-          FORK=false
+          SKIP='false'
+          FORK='false'
           SHA=''
           SUITE='pr'
           REF=''
@@ -102,7 +102,7 @@ jobs:
             # workflow_run: only proceed when Local Gate (CI) succeeded
             if [ "${WR_CONCLUSION}" != "success" ]; then
               echo "CI conclusion=${WR_CONCLUSION} — not dispatching Lab."
-              SKIP=true
+              SKIP='true'
               SHA="${WR_HEAD_SHA}"
             else
               SHA="${WR_HEAD_SHA}"
@@ -114,15 +114,15 @@ jobs:
               # Fork PR: do NOT treat as PASS — publish explicit failure check.
               if [ "${WR_EVENT}" = "pull_request" ]; then
                 if [ "${WR_HEAD_FORK}" = "true" ] || { [ -n "${WR_HEAD_REPO}" ] && [ "${WR_HEAD_REPO}" != "${REPO}" ]; }; then
-                  FORK=true
+                  FORK='true'
                   echo "Fork PR detected (${WR_HEAD_REPO}) — PENDING_MAINTAINER_VALIDATION"
                 fi
               fi
               # Suite: push to default branch → full; otherwise pr
               if [ "${WR_EVENT}" = "push" ] && [ "${WR_HEAD_BRANCH}" = "${DEFAULT_BRANCH}" ]; then
-                SUITE=full
+                SUITE='full'
               else
-                SUITE=pr
+                SUITE='pr'
               fi
             fi
           fi
