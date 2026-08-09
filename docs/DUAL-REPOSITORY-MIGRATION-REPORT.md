@@ -7,72 +7,72 @@ Branches: Action `feat/dual-repo-lab-gate` · Lab `main`
 
 ## Repositories
 
-| Repository | Status |
-| ---------- | ------ |
-| **Afrika-Veracode-Build** | Feature branch ready (`feat/dual-repo-lab-gate`); Local Gate + Trusted Lab Orchestrator |
-| **Afrika-Veracode-Build-Lab** | **PRIVATE**, default branch `main` established and pushed |
+| Repository                    | Status                                                                                  |
+| ----------------------------- | --------------------------------------------------------------------------------------- |
+| **Afrika-Veracode-Build**     | Feature branch ready (`feat/dual-repo-lab-gate`); Local Gate + Trusted Lab Orchestrator |
+| **Afrika-Veracode-Build-Lab** | **PRIVATE**, default branch `main` established and pushed                               |
 
 ## Git Remote
 
-| Repo | Remote | Notes |
-| ---- | ------ | ----- |
-| Lab | `https://github.com/JuanCunhaa/Afrika-Veracode-Build-Lab.git` | Pushed; SSH failed initially → HTTPS used |
-| Action | `https://github.com/JuanCunhaa/Afrika-Veracode-Build.git` | Branch committed locally; push pending your approval |
+| Repo   | Remote                                                        | Notes                                                |
+| ------ | ------------------------------------------------------------- | ---------------------------------------------------- |
+| Lab    | `https://github.com/JuanCunhaa/Afrika-Veracode-Build-Lab.git` | Pushed; SSH failed initially → HTTPS used            |
+| Action | `https://github.com/JuanCunhaa/Afrika-Veracode-Build.git`     | Branch committed locally; push pending your approval |
 
 ## Repository Privacy
 
-| Repo | Visibility |
-| ---- | ---------- |
-| Afrika-Veracode-Build | PUBLIC (product) |
+| Repo                      | Visibility                       |
+| ------------------------- | -------------------------------- |
+| Afrika-Veracode-Build     | PUBLIC (product)                 |
 | Afrika-Veracode-Build-Lab | **PRIVATE** (confirmed via `gh`) |
 
 ---
 
 ## Migrated Tests
 
-| Corpus | Count (files) | Destination |
-| ------ | ------------: | ----------- |
-| Integration applications | 144 | Lab `applications/` |
-| Golden artifacts | 8 | Lab `golden-artifacts/` |
-| Builder → Doctor contracts | 6 | Lab `contracts/builder-doctor/` |
-| Test matrix | 1 | Lab `matrix/test-matrix.json` |
-| E2E placeholder | 1 | Lab `e2e/veracode/` |
-| Matrix unit tests | 6 cases | Lab `tests/unit/matrix/` |
+| Corpus                     | Count (files) | Destination                     |
+| -------------------------- | ------------: | ------------------------------- |
+| Integration applications   |           144 | Lab `applications/`             |
+| Golden artifacts           |             8 | Lab `golden-artifacts/`         |
+| Builder → Doctor contracts |             6 | Lab `contracts/builder-doctor/` |
+| Test matrix                |             1 | Lab `matrix/test-matrix.json`   |
+| E2E placeholder            |             1 | Lab `e2e/veracode/`             |
+| Matrix unit tests          |       6 cases | Lab `tests/unit/matrix/`        |
 
 ## Tests Remaining in Action
 
-| Suite | Approx files | Notes |
-| ----- | -----------: | ----- |
-| Unit | 17 | Includes relocated contract helper lib + dispatch-and-wait mocks |
-| Security | 3 | Pinning + Action Completeness + secret-leak |
-| Negative logic | 9 | Logic + ephemeral synthetic archives |
-| Unit fixtures | 95 | Small parse fixtures kept |
+| Suite          | Approx files | Notes                                                            |
+| -------------- | -----------: | ---------------------------------------------------------------- |
+| Unit           |           17 | Includes relocated contract helper lib + dispatch-and-wait mocks |
+| Security       |            3 | Pinning + Action Completeness + secret-leak                      |
+| Negative logic |            9 | Logic + ephemeral synthetic archives                             |
+| Unit fixtures  |           95 | Small parse fixtures kept                                        |
 
 ---
 
 ## Cross Repository
 
-| Concern | Status |
-| ------- | ------ |
-| Dispatch (`return_run_details` → `workflow_run_id`) | Implemented |
-| Correlation ID (audit + fallback) | Implemented |
-| Polling / timeout / cancel / failure | Implemented + mocked |
-| Result → Lab Compatibility Gate check | Implemented in `lab-orchestrator.yml` |
-| Trusted orchestrator (no App secrets on PR) | Implemented |
-| Gate Integration (live) | **PENDING** secrets |
+| Concern                                             | Status                                |
+| --------------------------------------------------- | ------------------------------------- |
+| Dispatch (`return_run_details` → `workflow_run_id`) | Implemented                           |
+| Correlation ID (audit + fallback)                   | Implemented                           |
+| Polling / timeout / cancel / failure                | Implemented + mocked                  |
+| Result → Lab Compatibility Gate check               | Implemented in `lab-orchestrator.yml` |
+| Trusted orchestrator (no App secrets on PR)         | Implemented                           |
+| Gate Integration (live)                             | **PENDING** secrets                   |
 
 ---
 
 ## Security
 
-| Control | Status |
-| ------- | ------ |
-| SHA pinning (Action + Lab workflows) | PASS (static) |
-| Secrets never in logs (orchestrator tests) | PASS (mocked) |
-| Untrusted PR isolation (no Lab App on CI) | PASS (static design) |
-| Fork = `PENDING_MAINTAINER_VALIDATION` (not PASS) | PASS (static) |
-| `config_mode: disabled` in Lab compatibility | PASS (static) |
-| Veracode E2E trusted-only / separate workflow | PASS (static) |
+| Control                                           | Status               |
+| ------------------------------------------------- | -------------------- |
+| SHA pinning (Action + Lab workflows)              | PASS (static)        |
+| Secrets never in logs (orchestrator tests)        | PASS (mocked)        |
+| Untrusted PR isolation (no Lab App on CI)         | PASS (static design) |
+| Fork = `PENDING_MAINTAINER_VALIDATION` (not PASS) | PASS (static)        |
+| `config_mode: disabled` in Lab compatibility      | PASS (static)        |
+| Veracode E2E trusted-only / separate workflow     | PASS (static)        |
 
 ---
 

@@ -5,12 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const {
-  assertDoctorAcceptsBuilderArtifact,
-  failContract,
-  ALLOWED_WARN_IDS,
-  ERROR_CODES
-} = require('./lib/contract');
+const { assertDoctorAcceptsBuilderArtifact, failContract, ALLOWED_WARN_IDS, ERROR_CODES } = require('./lib/contract');
 const { withGradleInitScript, INIT_SCRIPT } = require('../../../internal/builder/java-gradle');
 
 describe('Builder → Doctor contract helpers', () => {

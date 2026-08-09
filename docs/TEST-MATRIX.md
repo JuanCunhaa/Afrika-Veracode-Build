@@ -12,20 +12,20 @@ Resolver (Lab): `node scripts/resolve-test-matrix.js --profile pr|full|release`
 
 Orchestration:
 
-| Check | Workflow | Repo |
-| ----- | -------- | ---- |
-| **Local Gate** | [`ci.yml`](../.github/workflows/ci.yml) | Action |
-| **Lab Compatibility Gate** | Lab `lab-gate.yml` via trusted [`lab-orchestrator.yml`](../.github/workflows/lab-orchestrator.yml) | Lab |
+| Check                      | Workflow                                                                                           | Repo   |
+| -------------------------- | -------------------------------------------------------------------------------------------------- | ------ |
+| **Local Gate**             | [`ci.yml`](../.github/workflows/ci.yml)                                                            | Action |
+| **Lab Compatibility Gate** | Lab `lab-gate.yml` via trusted [`lab-orchestrator.yml`](../.github/workflows/lab-orchestrator.yml) | Lab    |
 
 See [`docs/TEST-LAB.md`](TEST-LAB.md) and [`docs/BRANCH-PROTECTION.md`](BRANCH-PROTECTION.md).
 
 ## Profiles
 
-| Profile | Trigger (Lab suite) | Goal | fail-fast |
-| ------- | ------------------- | ---- | --------- |
-| **pr** | Same-repo PR / push (via orchestrator) | Fast representative coverage | `true` |
-| **full** | schedule / manual / main as configured | All supported versions | `false` |
-| **release** | Trusted release path | Full + golden + contracts (+ E2E when configured) | `false` |
+| Profile     | Trigger (Lab suite)                    | Goal                                              | fail-fast |
+| ----------- | -------------------------------------- | ------------------------------------------------- | --------- |
+| **pr**      | Same-repo PR / push (via orchestrator) | Fast representative coverage                      | `true`    |
+| **full**    | schedule / manual / main as configured | All supported versions                            | `false`   |
+| **release** | Trusted release path                   | Full + golden + contracts (+ E2E when configured) | `false`   |
 
 Experimental cells may use `continue-on-error` in Lab. **Stable/Beta required** cells must not.
 
@@ -40,7 +40,7 @@ Experimental cells may use `continue-on-error` in Lab. **Stable/Beta required** 
 
 ## Ownership
 
-| Concern | Location |
-| ------- | -------- |
-| Unit / negative logic / security | Action |
-| Matrix rows / applications / contracts / golden | Lab |
+| Concern                                         | Location |
+| ----------------------------------------------- | -------- |
+| Unit / negative logic / security                | Action   |
+| Matrix rows / applications / contracts / golden | Lab      |
