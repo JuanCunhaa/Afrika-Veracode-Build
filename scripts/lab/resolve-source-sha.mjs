@@ -1,3 +1,6 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 /**
  * Resolve which Action commit SHA Local Gate / Lab Compatibility Gate must use
  * so checks align with GitHub Branch Protection expectations.
@@ -101,4 +104,34 @@ export function isSameExactSha(a, b) {
   const x = normalizeSha(a);
   const y = normalizeSha(b);
   return Boolean(x && y && x === y);
+}
+
+/**
+ * CLI for trusted orchestrator shells (avoids YAML-breaking inline heredocs).
+ * Env: SOURCE_EVENT, HEAD_SHA, PR_MERGE_SHA, MERGE_GROUP_SHA, HEAD_BRANCH, DEFAULT_BRANCH, MANUAL_SHA
+ * Prints three lines: sha, kind, note
+ */
+export function runResolveSourceShaCli(env = process.env) {
+  const r = resolveSourceSha({
+    sourceEvent: env.SOURCE_EVENT || '',
+    headSha: env.HEAD_SHA || '',
+    prMergeSha: env.PR_MERGE_SHA || '',
+    mergeGroupSha: env.MERGE_GROUP_SHA || env.HEAD_SHA || '',
+    headBranch: env.HEAD_BRANCH || '',
+    defaultBranch: env.DEFAULT_BRANCH || 'main',
+    manualSha: env.MANUAL_SHA || ''
+  });
+  process.stdout.write(`${r.sha}\n${r.kind}\n${r.note}\n`);
+  return r;
+}
+
+const thisFile = fileURLToPath(import.meta.url);
+const entry = process.argv[1] ? path.resolve(process.argv[1]) : '';
+if (entry && path.resolve(thisFile) === entry) {
+  try {
+    runResolveSourceShaCli();
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  }
 }

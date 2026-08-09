@@ -191,23 +191,13 @@ jobs:
             fi
 
             RESOLVED="$(
-              SOURCE_EVENT_FOR_SHA="${SOURCE_EVENT}" \
-              WR_HEAD_SHA="${WR_HEAD_SHA}" \
+              SOURCE_EVENT="${SOURCE_EVENT}" \
+              HEAD_SHA="${WR_HEAD_SHA}" \
               PR_MERGE_SHA="${PR_MERGE_SHA}" \
-              WR_HEAD_BRANCH="${WR_HEAD_BRANCH}" \
+              MERGE_GROUP_SHA="${WR_HEAD_SHA}" \
+              HEAD_BRANCH="${WR_HEAD_BRANCH}" \
               DEFAULT_BRANCH="${DEFAULT_BRANCH}" \
-              node --input-type=module <<'NODE'
-import { resolveSourceSha } from './scripts/lab/resolve-source-sha.mjs';
-const r = resolveSourceSha({
-  sourceEvent: process.env.SOURCE_EVENT_FOR_SHA,
-  headSha: process.env.WR_HEAD_SHA || '',
-  prMergeSha: process.env.PR_MERGE_SHA || '',
-  mergeGroupSha: process.env.WR_HEAD_SHA || '',
-  headBranch: process.env.WR_HEAD_BRANCH || '',
-  defaultBranch: process.env.DEFAULT_BRANCH || 'main'
-});
-process.stdout.write(`${r.sha}\n${r.kind}\n${r.note}\n`);
-NODE
+              node ./scripts/lab/resolve-source-sha.mjs
             )" || {
               echo "::error::resolveSourceSha failed"
               exit 1
