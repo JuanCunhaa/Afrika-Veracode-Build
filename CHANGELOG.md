@@ -21,6 +21,7 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0
 
 - Gradle discovery: `JavaVersion.VERSION_1_8` resolves to runtime `8` (not `1`).
 - Maven discovery: aggregator `packaging=pom` collects module artifacts via `*/target/*.jar`.
+- Artifact glob resolver expands one-level directory `*` (so `*/target/*.jar` finds module jars).
 
 ### Changed
 

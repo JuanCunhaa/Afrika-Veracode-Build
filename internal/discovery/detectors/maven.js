@@ -87,13 +87,17 @@ function detect(root) {
   const shade = /maven-shade-plugin/i.test(pom);
 
   // Aggregator POMs build module jars under <module>/target — not root target/.
+  const modules = [...pom.matchAll(/<module>\s*([^<]+?)\s*<\/module>/gi)]
+    .map((m) => String(m[1]).trim())
+    .filter(Boolean);
+  const modulePatterns = modules.flatMap((mod) => [`${mod}/target/*.jar`, `${mod}/target/*.war`]);
   const artifactPatterns =
     packaging === 'war'
       ? ['target/*.war']
       : packaging === 'ear'
         ? ['target/*.ear']
         : packaging === 'pom'
-          ? ['*/target/*.jar', '*/target/*.war', 'target/*.jar']
+          ? [...modulePatterns, '*/target/*.jar', '*/target/*.war', 'target/*.jar']
           : framework === 'quarkus'
             ? ['target/*-runner.jar', 'target/*.jar']
             : ['target/*.jar'];

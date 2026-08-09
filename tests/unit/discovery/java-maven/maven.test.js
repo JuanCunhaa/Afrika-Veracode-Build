@@ -75,7 +75,9 @@ describe('discovery / java-maven', () => {
     assert.equal(d.buildSystem, 'maven');
     assert.equal(d.packaging, 'pom');
     assert.equal(d.runtimeVersion, '17');
-    assert.deepEqual(d.artifactCandidates, ['*/target/*.jar', '*/target/*.war', 'target/*.jar']);
+    assert.ok(d.artifactCandidates.includes('api/target/*.jar'));
+    assert.ok(d.artifactCandidates.includes('core/target/*.jar'));
+    assert.ok(d.artifactCandidates.includes('*/target/*.jar'));
   });
 
   it('detecta Maven Wrapper quando mvnw existe', () => {

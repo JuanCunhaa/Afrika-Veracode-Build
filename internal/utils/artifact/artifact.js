@@ -135,7 +135,39 @@ function matchesAnyGlob(name, globs) {
 }
 
 /**
- * Resolve padroes tipo target/*.jar relativo a projectPath, excluindo suffixes indesejados.
+ * Expand directory segments that may contain `*` (one path level only).
+ * @param {string} root
+ * @param {string[]} dirParts
+ * @returns {string[]}
+ */
+function expandDirGlobs(root, dirParts) {
+  let dirs = [root];
+  for (const part of dirParts) {
+    if (!part || part === '.') continue;
+    const next = [];
+    for (const dir of dirs) {
+      if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) continue;
+      if (part === '*') {
+        for (const name of fs.readdirSync(dir)) {
+          const child = path.join(dir, name);
+          try {
+            if (fs.statSync(child).isDirectory()) next.push(child);
+          } catch {
+            /* ignore */
+          }
+        }
+      } else {
+        next.push(path.join(dir, part));
+      }
+    }
+    dirs = next;
+  }
+  return dirs;
+}
+
+/**
+ * Resolve artifact globs relative to projectPath (e.g. target/*.jar, star/target/*.jar).
+ * A directory-segment star expands one level (not recursive).
  * @param {string} projectPath
  * @param {string[]} patterns
  * @param {{ excludeSuffixes?: string[] }} [opts]
@@ -144,17 +176,25 @@ function matchesAnyGlob(name, globs) {
 function resolveArtifactPatterns(projectPath, patterns, opts = {}) {
   const excludeSuffixes = opts.excludeSuffixes || ['-sources.jar', '-javadoc.jar', '-tests.jar', '-test-fixtures.jar'];
   const found = [];
+  const seen = new Set();
   for (const pattern of patterns || []) {
-    const parts = pattern.split('/');
+    const parts = String(pattern || '')
+      .split('/')
+      .filter((p) => p.length > 0);
+    if (parts.length === 0) continue;
     const fileGlob = parts.pop();
-    const dirRel = parts.join('/') || '.';
-    const dir = path.join(projectPath, dirRel);
-    if (!fs.existsSync(dir)) continue;
+    const dirs = parts.length === 0 ? [projectPath] : expandDirGlobs(projectPath, parts);
     const re = globToRegExp(fileGlob);
-    for (const name of fs.readdirSync(dir)) {
-      if (!re.test(name)) continue;
-      if (excludeSuffixes.some((s) => name.endsWith(s))) continue;
-      found.push(path.join(dir, name));
+    for (const dir of dirs) {
+      if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) continue;
+      for (const name of fs.readdirSync(dir)) {
+        if (!re.test(name)) continue;
+        if (excludeSuffixes.some((s) => name.endsWith(s))) continue;
+        const abs = path.join(dir, name);
+        if (seen.has(abs)) continue;
+        seen.add(abs);
+        found.push(abs);
+      }
     }
   }
   return found;
