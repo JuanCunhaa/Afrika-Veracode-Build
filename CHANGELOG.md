@@ -8,14 +8,13 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0
 
 ### Added
 
-- Trusted **Lab Orchestrator** (`.github/workflows/lab-orchestrator.yml`) + `scripts/lab/dispatch-and-wait.mjs` (GitHub App JWT, `return_run_details`, correlation fallback).
-- Docs: `docs/TEST-LAB.md`, `docs/BRANCH-PROTECTION.md`, `docs/TEST-MIGRATION-MAP.md`.
-- Unit tests for Lab dispatcher and suite mapping (`tests/unit/lab/`, `scripts/lab/resolve-suite.mjs`).
-- Lab Compatibility Gate published as **in_progress** as soon as Lab dispatch starts (visible on the PR while the private Lab runs); **details_url** links to the Lab run.
-- SHA+suite **deduplication** before Lab dispatch (reuse success / wait on in-flight).
-- Workflow secret policy validator (`npm run check:workflow-secrets`).
-- Draft PR policy: **DRAFT_PR_LAB_DEFERRED** until `ready_for_review`.
-- SHA policy module `scripts/lab/resolve-source-sha.mjs`: PR events use `refs/pull/<n>/merge` (aligned with Local Gate / Branch Protection); feature push keeps HEAD.
+- **Product Quality Gate** / **Product Main Gate** (`.github/workflows/product-gate.yml` + Lab Orchestrator publishing).
+- **Release Certification Gate** (`.github/workflows/release-certification.yml`) — SHA-bound Local+Lab full+Veracode full; no automatic tag publish.
+- Declared support rows with stable IDs (`schemas/support-matrix.json` schemaVersion 2) including `veracodeCertification.cases` (packaging variants).
+- Machine-generated `schemas/certification-status.json` + event policy `schemas/event-policy.json`.
+- Automated README support matrix (`npm run docs:support:generate` / `docs:support:check`).
+- Veracode ✅ requires **all** required Pipeline Scan cases for that public row (e.g. Java Maven 17 JAR+WAR).
+- Release Veracode `full` = **all 40 Lab Compatibility Full** cases (Pipeline E2E `profile=full`).
 
 ### Fixed
 
@@ -27,9 +26,11 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0
 
 - Externalized compatibility and real-application test laboratory to **Afrika-Veracode-Build-Lab**.
 - Integrated remote Lab validation via trusted Lab Orchestrator into **Lab Compatibility Gate** (required check alongside Local Gate).
-- Event-aware Lab suite orchestration: feature push / PR / merge_group → `pr`; push `main` → `full` (exactly two modes; Veracode E2E remains separate).
+- Event-aware Lab suite orchestration: feature push / PR / merge_group → `pr`; push `main` → `full` + Veracode **representative** → Product Main Gate.
 - CI runs on all branch pushes, `merge_group`, and PR `ready_for_review` (not only `main` + PR).
-- CI final job renamed to **Local Gate**; contract/integration matrix jobs removed from Action CI.
+- CI final job renamed to **Local Gate**; contract/integration matrix jobs removed from Action CI; Local Gate now includes support-matrix docs sync.
+- Automatic GitHub Release on push `main` **disabled** until Release Certification Gate PASS for the same SHA.
+- README rewritten in pt-BR (product documentation); support table is machine-generated.
 - `schemas/capabilities.json` uses `actionValidation` + `labValidation` (logical Lab keys).
 - Action Completeness no longer requires local integration/contract/golden/matrix paths.
 - Lab Orchestrator concurrency groups by **source branch** (cancels superseded Lab waits on the same PR); no longer falls back to `github.sha` (default-branch tip).

@@ -1,0 +1,718 @@
+{
+  "schemaVersion": 2,
+  "description": "Declared public support rows (stable IDs). Mapping: support row → lab.compatibilityCases → veracodeCertification.cases. README is generated output — never source of truth.",
+  "statusLifecycle": ["planned", "experimental", "beta", "stable"],
+  "notes": {
+    "coverageMeaning": "100% of the officially declared support matrix — not every application in existence.",
+    "veracodeMeaning": "Veracode ✅ only when ALL required Pipeline Scan cases for that support row PASS. No version inference.",
+    "representative": "Curated sanity set for main (cases with representative:true). Do not expand to every version.",
+    "full": "Pipeline Scan profile=full = ALL Lab Compatibility Full cases (expectedCaseCount 40). veracodeCertification.cases remain packaging variants for public-row ✅.",
+    "packagingVariants": "Distinct artifact shapes (e.g. JAR vs WAR) are separate required cases for public-row Veracode ✅ under the same support row.",
+    "labFullParity": "Release certification runs Lab Pipeline E2E profile=full (1:1 with Lab Compatibility Full)."
+  },
+  "veracodeProfiles": {
+    "representative": {
+      "expectedCaseCount": 7,
+      "source": "support-matrix-representative-flags",
+      "description": "Curated sanity set for main"
+    },
+    "full": {
+      "expectedCaseCount": 40,
+      "source": "lab-compatibility-full",
+      "description": "All Lab Compatibility Full matrix cases (Pipeline Scan release certification)"
+    }
+  },
+  "rows": [
+    {
+      "id": "java-maven-java8",
+      "capability": "java-maven",
+      "technology": "Java + Maven",
+      "version": "8",
+      "declaredLifecycle": "beta",
+      "releaseEligible": true,
+      "veracodeCertificationRequired": true,
+      "representative": false,
+      "lab": {
+        "matrixKey": "javaMaven",
+        "primaryCase": "java8-basic",
+        "compatibilityCases": ["java8-basic"],
+        "profiles": ["full"]
+      },
+      "veracodeCertification": {
+        "required": true,
+        "cases": [
+          {
+            "id": "java-maven-java8",
+            "variant": "jar",
+            "required": true,
+            "representative": false,
+            "family": "java-maven",
+            "contractCase": "java8-basic",
+            "fixture": "applications/java/maven/java8-basic",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "java": "8",
+              "distribution": "temurin"
+            },
+            "scenario": "JAR basic"
+          }
+        ]
+      }
+    },
+    {
+      "id": "java-maven-java11",
+      "capability": "java-maven",
+      "technology": "Java + Maven",
+      "version": "11",
+      "declaredLifecycle": "beta",
+      "releaseEligible": true,
+      "veracodeCertificationRequired": true,
+      "representative": false,
+      "lab": {
+        "matrixKey": "javaMaven",
+        "primaryCase": "java11-basic",
+        "compatibilityCases": ["java11-basic"],
+        "profiles": ["full"]
+      },
+      "veracodeCertification": {
+        "required": true,
+        "cases": [
+          {
+            "id": "java-maven-java11",
+            "variant": "jar",
+            "required": true,
+            "representative": false,
+            "family": "java-maven",
+            "contractCase": "java11-basic",
+            "fixture": "applications/java/maven/java11-basic",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "java": "11",
+              "distribution": "temurin"
+            },
+            "scenario": "JAR basic"
+          }
+        ]
+      }
+    },
+    {
+      "id": "java-maven-java17",
+      "capability": "java-maven",
+      "technology": "Java + Maven",
+      "version": "17",
+      "declaredLifecycle": "beta",
+      "releaseEligible": true,
+      "veracodeCertificationRequired": true,
+      "representative": true,
+      "lab": {
+        "matrixKey": "javaMaven",
+        "primaryCase": "java17-basic",
+        "compatibilityCases": ["java17-basic", "springboot-java17", "war-java17", "multimodule-java17"],
+        "profiles": ["pr", "full"]
+      },
+      "veracodeCertification": {
+        "required": true,
+        "cases": [
+          {
+            "id": "java-maven-java17",
+            "variant": "jar",
+            "required": true,
+            "representative": true,
+            "family": "java-maven",
+            "contractCase": "java17-basic",
+            "fixture": "applications/java/maven/java17-basic",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "java": "17",
+              "distribution": "temurin"
+            },
+            "scenario": "JAR basic"
+          },
+          {
+            "id": "java-maven-war-java17",
+            "variant": "war",
+            "required": true,
+            "representative": true,
+            "family": "java-maven",
+            "contractCase": "war-java17",
+            "fixture": "applications/java/maven/war-java17",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "java": "17",
+              "distribution": "temurin"
+            },
+            "scenario": "WAR packaging"
+          }
+        ]
+      }
+    },
+    {
+      "id": "java-maven-java21",
+      "capability": "java-maven",
+      "technology": "Java + Maven",
+      "version": "21",
+      "declaredLifecycle": "beta",
+      "releaseEligible": true,
+      "veracodeCertificationRequired": true,
+      "representative": false,
+      "lab": {
+        "matrixKey": "javaMaven",
+        "primaryCase": "java21-basic",
+        "compatibilityCases": ["java21-basic", "springboot-java21"],
+        "profiles": ["pr", "full"]
+      },
+      "veracodeCertification": {
+        "required": true,
+        "cases": [
+          {
+            "id": "java-maven-java21",
+            "variant": "jar",
+            "required": true,
+            "representative": false,
+            "family": "java-maven",
+            "contractCase": "java21-basic",
+            "fixture": "applications/java/maven/java21-basic",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "java": "21",
+              "distribution": "temurin"
+            },
+            "scenario": "JAR basic"
+          }
+        ]
+      }
+    },
+    {
+      "id": "java-maven-java25",
+      "capability": "java-maven",
+      "technology": "Java + Maven",
+      "version": "25",
+      "declaredLifecycle": "experimental",
+      "releaseEligible": false,
+      "veracodeCertificationRequired": false,
+      "representative": false,
+      "lab": {
+        "matrixKey": "javaMaven",
+        "primaryCase": "java25-basic",
+        "compatibilityCases": ["java25-basic"],
+        "profiles": ["full"]
+      },
+      "veracodeCertification": {
+        "required": false,
+        "cases": []
+      }
+    },
+    {
+      "id": "java-maven-java26",
+      "capability": "java-maven",
+      "technology": "Java + Maven",
+      "version": "26",
+      "declaredLifecycle": "experimental",
+      "releaseEligible": false,
+      "veracodeCertificationRequired": false,
+      "representative": false,
+      "lab": {
+        "matrixKey": "javaMaven",
+        "primaryCase": "java26-basic",
+        "compatibilityCases": ["java26-basic"],
+        "profiles": ["full"]
+      },
+      "veracodeCertification": {
+        "required": false,
+        "cases": []
+      }
+    },
+    {
+      "id": "java-gradle-java8",
+      "capability": "java-gradle",
+      "technology": "Java + Gradle",
+      "version": "8",
+      "declaredLifecycle": "beta",
+      "releaseEligible": true,
+      "veracodeCertificationRequired": true,
+      "representative": false,
+      "lab": {
+        "matrixKey": "javaGradle",
+        "primaryCase": "java8-basic",
+        "compatibilityCases": ["java8-basic"],
+        "profiles": ["full"]
+      },
+      "veracodeCertification": {
+        "required": true,
+        "cases": [
+          {
+            "id": "java-gradle-java8",
+            "variant": "jar",
+            "required": true,
+            "representative": false,
+            "family": "java-gradle",
+            "contractCase": "java8-basic",
+            "fixture": "applications/java/gradle/java8-basic",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "java": "8",
+              "distribution": "temurin",
+              "gradle": true
+            },
+            "scenario": "Gradle JAR"
+          }
+        ]
+      }
+    },
+    {
+      "id": "java-gradle-java11",
+      "capability": "java-gradle",
+      "technology": "Java + Gradle",
+      "version": "11",
+      "declaredLifecycle": "beta",
+      "releaseEligible": true,
+      "veracodeCertificationRequired": true,
+      "representative": false,
+      "lab": {
+        "matrixKey": "javaGradle",
+        "primaryCase": "java11-basic",
+        "compatibilityCases": ["java11-basic"],
+        "profiles": ["full"]
+      },
+      "veracodeCertification": {
+        "required": true,
+        "cases": [
+          {
+            "id": "java-gradle-java11",
+            "variant": "jar",
+            "required": true,
+            "representative": false,
+            "family": "java-gradle",
+            "contractCase": "java11-basic",
+            "fixture": "applications/java/gradle/java11-basic",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "java": "11",
+              "distribution": "temurin",
+              "gradle": true
+            },
+            "scenario": "Gradle JAR"
+          }
+        ]
+      }
+    },
+    {
+      "id": "java-gradle-java17",
+      "capability": "java-gradle",
+      "technology": "Java + Gradle",
+      "version": "17",
+      "declaredLifecycle": "beta",
+      "releaseEligible": true,
+      "veracodeCertificationRequired": true,
+      "representative": true,
+      "lab": {
+        "matrixKey": "javaGradle",
+        "primaryCase": "java17-basic",
+        "compatibilityCases": ["java17-basic", "kotlin-dsl-java17"],
+        "profiles": ["pr", "full"]
+      },
+      "veracodeCertification": {
+        "required": true,
+        "cases": [
+          {
+            "id": "java-gradle-java17",
+            "variant": "jar",
+            "required": true,
+            "representative": true,
+            "family": "java-gradle",
+            "contractCase": "java17-basic",
+            "fixture": "applications/java/gradle/java17-basic",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "java": "17",
+              "distribution": "temurin",
+              "gradle": true
+            },
+            "scenario": "Gradle JAR"
+          }
+        ]
+      }
+    },
+    {
+      "id": "java-gradle-java21",
+      "capability": "java-gradle",
+      "technology": "Java + Gradle",
+      "version": "21",
+      "declaredLifecycle": "beta",
+      "releaseEligible": true,
+      "veracodeCertificationRequired": true,
+      "representative": false,
+      "lab": {
+        "matrixKey": "javaGradle",
+        "primaryCase": "java21-basic",
+        "compatibilityCases": ["java21-basic"],
+        "profiles": ["pr", "full"]
+      },
+      "veracodeCertification": {
+        "required": true,
+        "cases": [
+          {
+            "id": "java-gradle-java21",
+            "variant": "jar",
+            "required": true,
+            "representative": false,
+            "family": "java-gradle",
+            "contractCase": "java21-basic",
+            "fixture": "applications/java/gradle/java21-basic",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "java": "21",
+              "distribution": "temurin",
+              "gradle": true
+            },
+            "scenario": "Gradle JAR"
+          }
+        ]
+      }
+    },
+    {
+      "id": "java-gradle-java25",
+      "capability": "java-gradle",
+      "technology": "Java + Gradle",
+      "version": "25",
+      "declaredLifecycle": "experimental",
+      "releaseEligible": false,
+      "veracodeCertificationRequired": false,
+      "representative": false,
+      "lab": {
+        "matrixKey": "javaGradle",
+        "primaryCase": "java25-basic",
+        "compatibilityCases": ["java25-basic"],
+        "profiles": ["full"]
+      },
+      "veracodeCertification": {
+        "required": false,
+        "cases": []
+      }
+    },
+    {
+      "id": "java-gradle-java26",
+      "capability": "java-gradle",
+      "technology": "Java + Gradle",
+      "version": "26",
+      "declaredLifecycle": "experimental",
+      "releaseEligible": false,
+      "veracodeCertificationRequired": false,
+      "representative": false,
+      "lab": {
+        "matrixKey": "javaGradle",
+        "primaryCase": "java26-basic",
+        "compatibilityCases": ["java26-basic"],
+        "profiles": ["full"]
+      },
+      "veracodeCertification": {
+        "required": false,
+        "cases": []
+      }
+    },
+    {
+      "id": "javascript-node20",
+      "capability": "javascript",
+      "technology": "JavaScript",
+      "version": "Node 20",
+      "declaredLifecycle": "beta",
+      "releaseEligible": true,
+      "veracodeCertificationRequired": true,
+      "representative": true,
+      "lab": {
+        "matrixKey": "javascript",
+        "primaryCase": "vanilla-node",
+        "compatibilityCases": ["vanilla-node", "nestjs-yarn", "vue-pnpm", "express", "react", "nextjs", "angular"],
+        "profiles": ["pr", "full"]
+      },
+      "veracodeCertification": {
+        "required": true,
+        "cases": [
+          {
+            "id": "javascript-node20",
+            "variant": "source",
+            "required": true,
+            "representative": true,
+            "family": "javascript",
+            "contractCase": "vanilla-node",
+            "fixture": "applications/javascript/vanilla-node",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "node": "20"
+            },
+            "scenario": "Node npm"
+          }
+        ]
+      }
+    },
+    {
+      "id": "typescript-node20",
+      "capability": "typescript",
+      "technology": "TypeScript",
+      "version": "Node 20",
+      "declaredLifecycle": "beta",
+      "releaseEligible": true,
+      "veracodeCertificationRequired": true,
+      "representative": true,
+      "lab": {
+        "matrixKey": "typescript",
+        "primaryCase": "node-typescript",
+        "compatibilityCases": ["node-typescript", "react-typescript", "express-typescript", "nextjs-typescript"],
+        "profiles": ["pr", "full"]
+      },
+      "veracodeCertification": {
+        "required": true,
+        "cases": [
+          {
+            "id": "typescript-node20",
+            "variant": "source",
+            "required": true,
+            "representative": true,
+            "family": "typescript",
+            "contractCase": "node-typescript",
+            "fixture": "applications/typescript/node-typescript",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "node": "20"
+            },
+            "scenario": "Node TypeScript"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dotnet-net6",
+      "capability": "dotnet-modern",
+      "technology": ".NET",
+      "version": "6",
+      "declaredLifecycle": "beta",
+      "releaseEligible": true,
+      "veracodeCertificationRequired": true,
+      "representative": false,
+      "lab": {
+        "matrixKey": "dotnetModern",
+        "primaryCase": "net6-console",
+        "compatibilityCases": ["net6-console"],
+        "profiles": ["full"]
+      },
+      "veracodeCertification": {
+        "required": true,
+        "cases": [
+          {
+            "id": "dotnet-net6",
+            "variant": "assembly",
+            "required": true,
+            "representative": false,
+            "family": "dotnet",
+            "contractCase": "net6-console",
+            "fixture": "applications/dotnet/net6-console",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "dotnet": "6.0.x"
+            },
+            "scenario": ".NET 6 console"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dotnet-net7",
+      "capability": "dotnet-modern",
+      "technology": ".NET",
+      "version": "7",
+      "declaredLifecycle": "beta",
+      "releaseEligible": true,
+      "veracodeCertificationRequired": true,
+      "representative": false,
+      "lab": {
+        "matrixKey": "dotnetModern",
+        "primaryCase": "net7-console",
+        "compatibilityCases": ["net7-console"],
+        "profiles": ["full"]
+      },
+      "veracodeCertification": {
+        "required": true,
+        "cases": [
+          {
+            "id": "dotnet-net7",
+            "variant": "assembly",
+            "required": true,
+            "representative": false,
+            "family": "dotnet",
+            "contractCase": "net7-console",
+            "fixture": "applications/dotnet/net7-console",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "dotnet": "7.0.x"
+            },
+            "scenario": ".NET 7 console"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dotnet-net8",
+      "capability": "dotnet-modern",
+      "technology": ".NET",
+      "version": "8",
+      "declaredLifecycle": "beta",
+      "releaseEligible": true,
+      "veracodeCertificationRequired": true,
+      "representative": true,
+      "lab": {
+        "matrixKey": "dotnetModern",
+        "primaryCase": "net8-webapi",
+        "compatibilityCases": [
+          "net8-console",
+          "net8-webapi",
+          "vbnet",
+          "multi-project-solution",
+          "net8-classlibrary",
+          "net8-aspnet-core",
+          "net8-blazor-wasm"
+        ],
+        "profiles": ["pr", "full"]
+      },
+      "veracodeCertification": {
+        "required": true,
+        "cases": [
+          {
+            "id": "dotnet-net8",
+            "variant": "assembly",
+            "required": true,
+            "representative": true,
+            "family": "dotnet",
+            "contractCase": "net8-webapi",
+            "fixture": "applications/dotnet/net8-webapi",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "dotnet": "8.0.x"
+            },
+            "scenario": "ASP.NET Core Web API"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dotnet-net9",
+      "capability": "dotnet-modern",
+      "technology": ".NET",
+      "version": "9",
+      "declaredLifecycle": "experimental",
+      "releaseEligible": false,
+      "veracodeCertificationRequired": false,
+      "representative": false,
+      "lab": {
+        "matrixKey": "dotnetModern",
+        "primaryCase": "net9-console",
+        "compatibilityCases": ["net9-console"],
+        "profiles": ["full"]
+      },
+      "veracodeCertification": {
+        "required": false,
+        "cases": []
+      }
+    },
+    {
+      "id": "dotnet-net10",
+      "capability": "dotnet-modern",
+      "technology": ".NET",
+      "version": "10",
+      "declaredLifecycle": "experimental",
+      "releaseEligible": false,
+      "veracodeCertificationRequired": false,
+      "representative": true,
+      "lab": {
+        "matrixKey": "dotnetModern",
+        "primaryCase": "net10-console",
+        "compatibilityCases": ["net10-console"],
+        "profiles": ["pr", "full"]
+      },
+      "veracodeCertification": {
+        "required": false,
+        "cases": []
+      }
+    },
+    {
+      "id": "dotnet-net48",
+      "capability": "dotnet-framework",
+      "technology": ".NET Framework",
+      "version": "4.8",
+      "declaredLifecycle": "beta",
+      "releaseEligible": true,
+      "veracodeCertificationRequired": true,
+      "representative": true,
+      "lab": {
+        "matrixKey": "dotnetFramework",
+        "primaryCase": "net48",
+        "compatibilityCases": ["net48"],
+        "profiles": ["pr", "full"]
+      },
+      "veracodeCertification": {
+        "required": true,
+        "cases": [
+          {
+            "id": "dotnet-net48",
+            "variant": "assembly",
+            "required": true,
+            "representative": true,
+            "family": "dotnet",
+            "contractCase": "net48",
+            "fixture": "applications/dotnet/net48",
+            "buildOs": "windows-latest",
+            "setup": {
+              "dotnet": "8.0.x",
+              "framework": "net48"
+            },
+            "scenario": ".NET Framework 4.8"
+          }
+        ]
+      }
+    },
+    {
+      "id": "cpp-cli",
+      "capability": "cpp-cli",
+      "technology": "C++/CLI",
+      "version": "—",
+      "declaredLifecycle": "experimental",
+      "releaseEligible": false,
+      "veracodeCertificationRequired": false,
+      "representative": false,
+      "lab": null,
+      "veracodeCertification": {
+        "required": false,
+        "cases": []
+      }
+    },
+    {
+      "id": "xamarin-maui",
+      "capability": "xamarin-maui",
+      "technology": "Xamarin/MAUI",
+      "version": "—",
+      "declaredLifecycle": "experimental",
+      "releaseEligible": false,
+      "veracodeCertificationRequired": false,
+      "representative": false,
+      "lab": null,
+      "veracodeCertification": {
+        "required": false,
+        "cases": []
+      }
+    },
+    {
+      "id": "python",
+      "capability": "python",
+      "technology": "Python",
+      "version": "—",
+      "declaredLifecycle": "planned",
+      "releaseEligible": false,
+      "veracodeCertificationRequired": false,
+      "representative": false,
+      "lab": null,
+      "veracodeCertification": {
+        "required": false,
+        "cases": []
+      }
+    }
+  ]
+}

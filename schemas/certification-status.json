@@ -1,0 +1,16 @@
+{
+  "generated": true,
+  "schemaVersion": 1,
+  "description": "MACHINE-GENERATED public certification evidence. Do not edit by hand. Regenerated after Release Certification Gate PASS.",
+  "release": null,
+  "sourceSha": null,
+  "certifiedAt": null,
+  "capabilitiesFingerprint": null,
+  "supportMatrixFingerprint": null,
+  "matrixFingerprint": null,
+  "rows": {},
+  "notes": {
+    "readmeRepresents": "Última certificação publicada (quando houver). Sem release certificado, a matriz pública reflete apenas declaração + ausência de evidência Veracode.",
+    "veracodeMeaning": "validatedRealVeracode=true somente após Pipeline Scan real com Expected CWE Contract PASS."
+  }
+}

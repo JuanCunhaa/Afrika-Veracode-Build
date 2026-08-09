@@ -135,6 +135,25 @@ jobs:
           END=$(date +%s)
           node scripts/ci-job-report.js --tech Policy --version - --scenario feature-completeness --result PASS --seconds $((END-START)) --job feature-completeness
 
+  support-docs:
+    name: Support matrix docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Support matrix + README sync
+        run: |
+          set -euo pipefail
+          START=$(date +%s)
+          npm run check:support-matrix
+          npm run docs:support:check
+          END=$(date +%s)
+          node scripts/ci-job-report.js --tech Docs --version - --scenario support-matrix --result PASS --seconds $((END-START)) --job support-docs
+
   local-gate:
     name: Local Gate
     # Fonte de verdade do CI local. Todo job de check NOVO deve:
@@ -143,15 +162,7 @@ jobs:
     # Lab Compatibility Gate e publicado pelo workflow Lab Orchestrator (separado).
     # Jobs pos-gate (ex.: release) usam needs: [local-gate] apenas.
     runs-on: ubuntu-latest
-    needs:
-      [
-        quality,
-        unit,
-        negative,
-        security,
-        secret-leak,
-        feature-completeness
-      ]
+    needs: [quality, unit, negative, security, secret-leak, feature-completeness, support-docs]
     if: always()
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -167,6 +178,7 @@ jobs:
           echo "security=${{ needs.security.result }}"
           echo "secret-leak=${{ needs.secret-leak.result }}"
           echo "feature-completeness=${{ needs.feature-completeness.result }}"
+          echo "support-docs=${{ needs.support-docs.result }}"
 
           failed=0
           for result in \
@@ -175,7 +187,8 @@ jobs:
             "${{ needs.negative.result }}" \
             "${{ needs.security.result }}" \
             "${{ needs.secret-leak.result }}" \
-            "${{ needs.feature-completeness.result }}"
+            "${{ needs.feature-completeness.result }}" \
+            "${{ needs.support-docs.result }}"
           do
             # success | skipped OK; failure | cancelled → Local Gate fail
             if [ "$result" != "success" ] && [ "$result" != "skipped" ]; then
@@ -198,6 +211,7 @@ jobs:
             echo "| Security | ${{ needs.security.result }} |"
             echo "| Secret leak | ${{ needs.secret-leak.result }} |"
             echo "| Feature completeness | ${{ needs.feature-completeness.result }} |"
+            echo "| Support matrix docs | ${{ needs.support-docs.result }} |"
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -208,54 +222,18 @@ jobs:
 
           echo "Local Gate ok"
 
+  # Automatic tag/release on main is DISABLED.
+  # Releases require Release Certification Gate SUCCESS for the same source SHA
+  # (Local + Lab full + Veracode Pipeline E2E full). Use release-certification.yml.
   release:
-    name: Release
+    name: Release (gated)
     runs-on: ubuntu-latest
     needs: [local-gate]
-    if: needs.local-gate.result == 'success' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: false
     permissions:
-      contents: write
+      contents: read
     steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          fetch-depth: 0
-
-      - name: Create GitHub Release from package.json
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Release policy
         run: |
-          set -euo pipefail
-
-          VERSION="$(node -p "require('./package.json').version")"
-          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::package.json version invalida: $VERSION (esperado X.Y.Z)"
-            exit 1
-          fi
-
-          TAG="v${VERSION}"
-          echo "Versao do package.json: $VERSION (tag $TAG)"
-
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG ja existe — nada a fazer."
-            exit 0
-          fi
-
-          cat > /tmp/release-notes.md <<EOF
-          Release ${TAG} of Afrika-Veracode-Build.
-
-          Prefer FULL COMMIT SHA when consuming this Action:
-
-              JuanCunhaa/Afrika-Veracode-Build@${GITHUB_SHA}
-
-          Tag ${TAG} points to this commit and can be used as a version reference.
-          EOF
-
-          sed -i 's/^          //' /tmp/release-notes.md
-
-          gh release create "$TAG" \
-            --title "$TAG" \
-            --notes-file /tmp/release-notes.md \
-            --target "$GITHUB_SHA"
-
-          echo "Release $TAG criado em $GITHUB_SHA"
+          echo "Releases are published only after Release Certification Gate PASS for the candidate SHA."
+          exit 1

@@ -1,0 +1,225 @@
+# Release Certification Gate — Local + Lab full + Veracode Pipeline E2E full.
+# SHA-bound. Does NOT publish git tags/releases (manual authorization required).
+#
+# Flow:
+#   RELEASE CANDIDATE SHA
+#     → Local Gate (CI) must already be green for SHA (or run CI first)
+#     → Lab full
+#     → Veracode full (all 40 Lab Compatibility Full cases)
+#     → Release Certification Gate check + release-certification.json artifact
+name: Release Certification
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Candidate SHA (40 hex) — must match Local Gate success
+        type: string
+        required: true
+      release:
+        description: Optional release label (e.g. v0.1.4) — documentation only; no tag publish
+        type: string
+        required: false
+        default: ''
+      skip_lab:
+        description: Skip Lab dispatch if Lab full already passed for this SHA (trusted maintainer only)
+        type: boolean
+        default: false
+      skip_veracode:
+        description: Skip Veracode (NOT allowed for real certification — testing only)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  checks: write
+  actions: read
+
+concurrency:
+  group: release-certification-${{ inputs.source_sha }}
+  cancel-in-progress: false
+
+jobs:
+  certify:
+    name: Release Certification Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout trusted default branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+
+      - name: Validate SHA
+        id: ctx
+        env:
+          SHA: ${{ inputs.source_sha }}
+          RELEASE: ${{ inputs.release }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::source_sha must be 40 hex chars"
+            exit 1
+          fi
+          echo "source_sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "release=${RELEASE}" >> "$GITHUB_OUTPUT"
+          DECLARED="$(node --input-type=module -e "import { countReleaseVeracodeFull } from './scripts/docs/support-matrix-lib.mjs'; console.log(countReleaseVeracodeFull());")"
+          echo "declared_veracode_full=${DECLARED}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish Release Certification Gate (in progress)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.ctx.outputs.source_sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          BODY=$(jq -n --arg sha "$SHA" '{
+            name: "Release Certification Gate",
+            head_sha: $sha,
+            status: "in_progress",
+            output: {
+              title: "Release certification running",
+              summary: "Local (prerequisite) + Lab full + Veracode Pipeline E2E full for this SHA."
+            }
+          }')
+          curl -fsSL -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${REPO}/check-runs" \
+            -d "$BODY"
+
+      - name: Lab Compatibility Gate (full)
+        id: lab
+        if: inputs.skip_lab != true
+        env:
+          LAB_GITHUB_APP_ID: ${{ secrets.LAB_GITHUB_APP_ID }}
+          LAB_GITHUB_APP_PRIVATE_KEY: ${{ secrets.LAB_GITHUB_APP_PRIVATE_KEY }}
+          LAB_GITHUB_APP_INSTALLATION_ID: ${{ secrets.LAB_GITHUB_APP_INSTALLATION_ID }}
+          LAB_OWNER: JuanCunhaa
+          LAB_REPO: Afrika-Veracode-Build-Lab
+          LAB_WORKFLOW_FILE: lab-gate.yml
+          LAB_REF: main
+          SOURCE_REPOSITORY: ${{ github.repository }}
+          SOURCE_SHA: ${{ steps.ctx.outputs.source_sha }}
+          SOURCE_REF: release-candidate
+          SOURCE_EVENT: workflow_dispatch
+          SOURCE_RUN_ID: ${{ github.run_id }}
+          SOURCE_RUN_ATTEMPT: ${{ github.run_attempt }}
+          SUITE: full
+          CORRELATION_ID: release-lab-${{ github.run_id }}-${{ github.run_attempt }}
+          POLL_INTERVAL_MS: '15000'
+          TIMEOUT_MS: '3600000'
+        run: node scripts/lab/dispatch-and-wait.mjs
+
+      - name: Veracode Pipeline E2E (full)
+        id: veracode
+        if: inputs.skip_veracode != true
+        env:
+          LAB_GITHUB_APP_ID: ${{ secrets.LAB_GITHUB_APP_ID }}
+          LAB_GITHUB_APP_PRIVATE_KEY: ${{ secrets.LAB_GITHUB_APP_PRIVATE_KEY }}
+          LAB_GITHUB_APP_INSTALLATION_ID: ${{ secrets.LAB_GITHUB_APP_INSTALLATION_ID }}
+          LAB_OWNER: JuanCunhaa
+          LAB_REPO: Afrika-Veracode-Build-Lab
+          LAB_WORKFLOW_FILE: veracode-pipeline-e2e.yml
+          LAB_REF: main
+          SOURCE_REPOSITORY: ${{ github.repository }}
+          SOURCE_SHA: ${{ steps.ctx.outputs.source_sha }}
+          VERACODE_PROFILE: full
+          CORRELATION_ID: release-veracode-${{ github.run_id }}-${{ github.run_attempt }}
+          POLL_INTERVAL_MS: '20000'
+          TIMEOUT_MS: '14400000'
+        run: node scripts/lab/dispatch-veracode-and-wait.mjs
+
+      - name: Write release-certification.json (orchestrator view)
+        if: always()
+        env:
+          SHA: ${{ steps.ctx.outputs.source_sha }}
+          RELEASE: ${{ steps.ctx.outputs.release }}
+          DECLARED: ${{ steps.ctx.outputs.declared_veracode_full }}
+          LAB_OUTCOME: ${{ steps.lab.outcome }}
+          V_OUTCOME: ${{ steps.veracode.outcome }}
+          SKIP_LAB: ${{ inputs.skip_lab }}
+          SKIP_V: ${{ inputs.skip_veracode }}
+        run: |
+          set -euo pipefail
+          LAB_PASS=false
+          V_PASS=false
+          if [ "${SKIP_LAB}" = "true" ] || [ "${LAB_OUTCOME}" = "success" ]; then LAB_PASS=true; fi
+          if [ "${SKIP_V}" = "true" ]; then
+            echo "::warning::skip_veracode=true — certification cannot be PASS for release"
+            V_PASS=false
+          elif [ "${V_OUTCOME}" = "success" ]; then
+            V_PASS=true
+          fi
+          RESULT=FAIL
+          if [ "$LAB_PASS" = "true" ] && [ "$V_PASS" = "true" ]; then RESULT=PASS; fi
+          jq -n \
+            --arg sha "$SHA" \
+            --arg release "$RELEASE" \
+            --argjson declared "$DECLARED" \
+            --argjson lab "$LAB_PASS" \
+            --argjson veracode "$V_PASS" \
+            --arg result "$RESULT" \
+            '{
+              sourceSha: $sha,
+              release: (if $release == "" then null else $release end),
+              declaredSupportRows: $declared,
+              labFullPassed: $lab,
+              veracodeFullExecuted: $declared,
+              veracodeFullPassed: (if $veracode then $declared else 0 end),
+              result: $result,
+              generatedAt: (now | todate),
+              note: "Orchestrator view. Lab Pipeline E2E also uploads detailed release-certification.json. Partial Veracode coverage cannot PASS release.",
+              sca: "NOT EXECUTED",
+              uploadAndScan: "NOT EXECUTED"
+            }' > release-certification.json
+          cat release-certification.json
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: release-certification
+          path: release-certification.json
+          retention-days: 90
+
+      - name: Finalize Release Certification Gate
+        if: always() && !cancelled()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.ctx.outputs.source_sha }}
+          REPO: ${{ github.repository }}
+          LAB_OUTCOME: ${{ steps.lab.outcome }}
+          V_OUTCOME: ${{ steps.veracode.outcome }}
+          SKIP_V: ${{ inputs.skip_veracode }}
+        run: |
+          set -euo pipefail
+          RESULT="$(jq -r .result release-certification.json)"
+          if [ "$RESULT" = "PASS" ]; then CONCLUSION=success; else CONCLUSION=failure; fi
+          BODY=$(jq -n \
+            --arg sha "$SHA" \
+            --arg conclusion "$CONCLUSION" \
+            --arg lab "${LAB_OUTCOME:-skipped}" \
+            --arg v "${V_OUTCOME:-skipped}" \
+            --arg skipv "$SKIP_V" \
+            '{
+              name: "Release Certification Gate",
+              head_sha: $sha,
+              status: "completed",
+              conclusion: $conclusion,
+              output: {
+                title: (if $conclusion == "success" then "RELEASE ELIGIBLE" else "RELEASE BLOCKED" end),
+                summary: ("SHA-bound certification.\n\nLab full: `" + $lab + "`\nVeracode full: `" + $v + "`\nskip_veracode: `" + $skipv + "`\n\nDoes not publish tags. Update certification-status.json / README via docs automation after PASS.")
+              }
+            }')
+          curl -fsSL -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${REPO}/check-runs" \
+            -d "$BODY"
+          if [ "$CONCLUSION" != "success" ]; then exit 1; fi
