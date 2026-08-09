@@ -29,6 +29,7 @@ Notes:
 - Legacy curated `full≈10` / derived certification-only `full≈15` are obsolete for Pipeline `profile=full`.
 - `full` = all Lab Compatibility Full cases (40). Packaging variants in `veracodeCertification.cases` still gate public-row Veracode ✅.
 - Representative stays curated (~7) for main sanity.
+- **Opção A:** Veracode Pipeline Scan runs **inside Lab Gate** (`veracode_profile`), reusing Builder `analysisPack.zip` — no second rebuild / separate workflow on main/release.
 
 ## Trust boundary
 
