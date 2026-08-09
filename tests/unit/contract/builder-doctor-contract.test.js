@@ -10,7 +10,7 @@ const {
   failContract,
   ALLOWED_WARN_IDS,
   ERROR_CODES
-} = require('../../contract/builder-doctor/lib/contract');
+} = require('./lib/contract');
 const { withGradleInitScript, INIT_SCRIPT } = require('../../../internal/builder/java-gradle');
 
 describe('Builder → Doctor contract helpers', () => {

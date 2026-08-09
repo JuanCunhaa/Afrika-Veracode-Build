@@ -207,17 +207,18 @@ Requisitos: Node.js 20+.
 ```bash
 npm ci
 npm test                 # unit + negative (node:test)
-npm run test:unit        # somente tests/unit
+npm run test:unit        # somente tests/unit (inclui scripts/lab dispatcher)
 npm run test:negative    # somente tests/negative
 npm run test:coverage    # coverage statement/branch (experimental)
 npm run lint
 npm run format:check
-npm run check:completeness   # Feature Completeness Contract
+npm run check:completeness   # Action Feature Completeness
+npm run check:action-pinning
 ```
 
-Os unit tests vivem em `tests/unit/` (discovery, build-plan, doctor, fingerprint, config, sanitize, utils, security/completeness) com fixtures em `tests/fixtures/unit/`. Os negative tests vivem em `tests/negative/` e provam falhas com error codes corretos (`UNSUPPORTED_LANGUAGE`, `AMBIGUOUS_PROJECT`, `DEPENDENCY_AUTH_REQUIRED`, `DOCTOR_FAILED`, …) e a distincao ERROR vs WARNING do Doctor. Sao rapidos, determinísticos e **nao** chamam a Veracode, registries externos nem credentials reais.
+Os unit tests vivem em `tests/unit/` (discovery, build-plan, doctor, fingerprint, config, sanitize, utils, security/completeness, lab dispatcher) com fixtures em `tests/fixtures/unit/`. Os negative tests vivem em `tests/negative/` e provam falhas com error codes corretos (`UNSUPPORTED_LANGUAGE`, `AMBIGUOUS_PROJECT`, `DEPENDENCY_AUTH_REQUIRED`, `DOCTOR_FAILED`, …) e a distincao ERROR vs WARNING do Doctor. Sao rapidos, determinísticos e **nao** chamam a Veracode, registries externos nem credentials reais.
 
-No CI, unit/negative rodam nos jobs **unit** / **negative**; security, **secret-leak** e **feature-completeness** rodam em paralelo; integration/contract em jobs por tecnologia. O veredito final e o job **Gate**. Matriz: [docs/INTEGRATION-MATRIX.md](docs/INTEGRATION-MATRIX.md) · Completeness: [docs/FEATURE-COMPLETENESS.md](docs/FEATURE-COMPLETENESS.md).
+**CI dual-repo:** workflow `CI` → job **Local Gate** (quality / unit / negative / security / secret-leak / feature-completeness). Integration, Builder→Doctor contracts, golden artifacts e matrix rodam no Lab privado apos o **Lab Orchestrator** (default branch + GitHub App). Check obrigatorio: **Lab Compatibility Gate**. Docs: [TEST-LAB](docs/TEST-LAB.md) · [BRANCH-PROTECTION](docs/BRANCH-PROTECTION.md) · [FEATURE-COMPLETENESS](docs/FEATURE-COMPLETENESS.md).
 
 ## Security
 

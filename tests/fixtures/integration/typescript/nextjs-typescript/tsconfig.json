@@ -1,9 +1,0 @@
-{
-  "compilerOptions": {
-    "jsx": "preserve",
-    "strict": true
-  },
-  "include": [
-    "pages"
-  ]
-}

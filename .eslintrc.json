@@ -14,5 +14,14 @@
     "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "caughtErrors": "none" }],
     "no-console": "off",
     "eqeqeq": ["error", "smart"]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["**/*.mjs"],
+      "parserOptions": {
+        "sourceType": "module",
+        "ecmaVersion": 2022
+      }
+    }
+  ]
 }

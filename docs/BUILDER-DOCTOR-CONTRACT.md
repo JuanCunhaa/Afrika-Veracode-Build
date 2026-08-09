@@ -1,8 +1,11 @@
 # Builder → Doctor Contract
 
-Last updated: 2026-08-07
+Last updated: 2026-08-08
 
 Prove that every artifact produced by a supported Builder is accepted by the matching Doctor.
+
+**Execution location:** private Lab (`Afrika-Veracode-Build-Lab/contracts/builder-doctor/`) via `lab-gate.yml`.  
+**Unit helpers** for the contract assertion library remain under Action `tests/unit/contract/`.
 
 ## Pipeline
 

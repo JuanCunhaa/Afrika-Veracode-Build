@@ -1,42 +1,31 @@
 ---
-description: CI Gate e a unica fonte de verdade; todo job novo deve entrar no Gate
+description: Local Gate + Lab Compatibility Gate are required; never expose Lab App secrets to PR workflows
 globs: ".github/workflows/**"
 alwaysApply: true
 ---
 
-# CI Gate — fonte de verdade
+# CI gates — dual repository
 
-Workflow unico: `.github/workflows/ci.yml` (nome **CI**).
+## Required checks (Action repo)
 
-Perfis de matriz (`pr` / `full` / `release`) vivem **no mesmo** workflow via `tests/test-matrix.json` — nao criar workflow separado de quality/integration/full.
+1. **Local Gate** — job in `.github/workflows/ci.yml` (workflow name **CI**)
+2. **Lab Compatibility Gate** — check published by trusted `.github/workflows/lab-orchestrator.yml`
 
-## Como saber se o CI passou
+Do **not** put `LAB_GITHUB_APP_*` (or any Lab credential) in `ci.yml` / PR-head workflows.
 
-**Sempre** baseie-se **somente** no job **Gate**:
+## Local Gate
 
-- Gate `success` → CI passou
-- Gate `failure` / `cancelled` / ausente → CI nao passou
-- Ignore como veredito final: checks externos (SonarCloud, bots Cursor, etc.), jobs paralelos isolados, ou “o workflow aparece verde no meio”
-- Jobs `skipped` (perfil sem aquele shard) sao aceitos pelo Gate; `failure`/`cancelled` nao
+- Unit, negative logic, security, secret-leak, Action Completeness, lint
+- Job name must remain **Local Gate** (`if: always()` aggregating local jobs)
+- Skipped local optional jobs may be OK; failure/cancelled must fail Local Gate
 
-Comandos uteis:
+## Lab Compatibility Gate
 
-```bash
-gh run view <id> --json jobs --jq '.jobs[] | select(.name=="Gate") | {name,conclusion}'
-# ou
-gh run watch <id>   # espere Gate success
-```
+- Only the **trusted orchestrator** (default-branch code) may use GitHub App secrets
+- Dispatches Lab `lab-gate.yml` for the source SHA; polls by `workflow_run_id` primarily
+- Fork PRs → explicit `PENDING_MAINTAINER_VALIDATION` (must **not** count as PASS)
+- Same-repo PR / push main → Lab REQUIRED
 
-## Ao adicionar qualquer coisa na esteira
+## Compatibility corpus
 
-Todo job de verificacao novo **obrigatoriamente**:
-
-1. Entra em `ci.yml` (nao criar workflow separado)
-2. Roda em paralelo com os demais checks (sem `needs` entre eles, salvo dependencia real de artefato)
-3. E listado em `gate.needs: [...]`
-4. Tem o resultado checado no step do Gate (`needs.<job>.result == success` ou `skipped`)
-5. Se for caso de matrix: adicionar em `tests/test-matrix.json` (SoT) — nao duplicar listas hardcoded
-
-**Release** (e jobs pos-gate) so usam `needs: [gate]` — nunca bypassam o Gate.
-
-Proibido: esteira/job que “passa sozinho” sem alimentar o Gate; segundo workflow de quality/integration; declarar CI ok sem Gate verde.
+Lives in private `Afrika-Veracode-Build-Lab` (applications, contracts, matrix, golden). Matrix SoT is Lab `matrix/test-matrix.json`.

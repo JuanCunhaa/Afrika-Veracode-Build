@@ -12,18 +12,14 @@
     "test:unit": "node scripts/run-unit-tests.js --root tests/unit",
     "test:negative": "node scripts/run-unit-tests.js --root tests/negative",
     "test:coverage": "node scripts/run-unit-tests.js --coverage",
-    "test:integration": "node scripts/run-integration-fixture.js",
-    "test:contract": "node scripts/run-builder-doctor-contract.js",
-    "test:matrix": "node scripts/resolve-test-matrix.js --print-table --print-support",
     "test:secret-leak": "node scripts/run-unit-tests.js --root tests/security/secret-leak",
-    "fixtures:integration": "node scripts/generate-integration-fixtures.js",
     "check:action-pinning": "node tests/security/check-action-pinning.js",
     "check:completeness": "node tests/security/check-feature-completeness.js",
     "pr": "npm run check:action-pinning && npm run check:completeness",
     "version:bump": "node scripts/bump-version.js",
-    "lint": "eslint \"internal/**/*.js\" \"tests/**/*.js\" \"scripts/**/*.js\"",
-    "format": "prettier --write \"internal/**/*.js\" \"tests/**/*.js\" \"scripts/**/*.js\" \"schemas/**/*.json\" \"*.md\" \"docs/**/*.md\"",
-    "format:check": "prettier --check \"internal/**/*.js\" \"tests/**/*.js\" \"scripts/**/*.js\" \"schemas/**/*.json\" \"*.md\" \"docs/**/*.md\""
+    "lint": "eslint \"internal/**/*.js\" \"tests/**/*.js\" \"scripts/**/*.js\" \"scripts/**/*.mjs\"",
+    "format": "prettier --write \"internal/**/*.js\" \"tests/**/*.js\" \"scripts/**/*.js\" \"scripts/**/*.mjs\" \"schemas/**/*.json\" \"*.md\" \"docs/**/*.md\"",
+    "format:check": "prettier --check \"internal/**/*.js\" \"tests/**/*.js\" \"scripts/**/*.js\" \"scripts/**/*.mjs\" \"schemas/**/*.json\" \"*.md\" \"docs/**/*.md\""
   },
   "devDependencies": {
     "eslint": "8.57.1",

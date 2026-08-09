@@ -1,10 +1,12 @@
 'use strict';
 
 /**
- * Feature Completeness validator.
+ * Feature Completeness validator — Action Completeness only.
  *
- * Compara schemas/capabilities.json com arquivos/testes/matrix reais.
- * Falha com FEATURE_COMPLETENESS_FAILED se status beta/stable declarar suporte incompleto.
+ * Compares schemas/capabilities.json with Action-local discovery/builder/doctor/
+ * unit/negative/docs. Integration fixtures, golden artifacts, contract cases on
+ * disk, and test-matrix.json live in Afrika-Veracode-Build-Lab and are declared
+ * via labValidation (keys required; Lab paths are not checked here).
  *
  * Uso:
  *   node tests/security/check-feature-completeness.js
@@ -16,13 +18,20 @@ const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '../..');
 const CAPABILITIES_PATH = path.join(ROOT, 'schemas/capabilities.json');
-const TEST_MATRIX_PATH = path.join(ROOT, 'tests/test-matrix.json');
 const DOCTOR_INDEX = path.join(ROOT, 'internal/doctor/index.js');
 const README = path.join(ROOT, 'README.md');
 const VERACODE_PACKAGING = path.join(ROOT, 'docs/VERACODE-PACKAGING.md');
-const E2E_EVIDENCE_DIR = path.join(ROOT, 'tests/e2e/veracode');
 
 const CODE = 'FEATURE_COMPLETENESS_FAILED';
+
+const LAB_VALIDATION_KEYS = [
+  'required',
+  'integrationSuite',
+  'contractSuite',
+  'goldenSuite',
+  'matrixKey',
+  'veracodeE2E'
+];
 
 /**
  * @param {string} rel
@@ -59,21 +68,6 @@ function hasAnyTestFile(dir) {
 }
 
 /**
- * @param {string} family
- * @returns {{ ok: boolean, cases: number }}
- */
-function contractCases(family) {
-  const p = abs(`tests/contract/builder-doctor/${family}/cases.json`);
-  if (!exists(p)) return { ok: false, cases: 0 };
-  try {
-    const arr = JSON.parse(fs.readFileSync(p, 'utf8'));
-    return { ok: Array.isArray(arr) && arr.length > 0, cases: Array.isArray(arr) ? arr.length : 0 };
-  } catch {
-    return { ok: false, cases: 0 };
-  }
-}
-
-/**
  * @returns {Set<string>}
  */
 function loadDoctorRegistryKeys() {
@@ -81,7 +75,6 @@ function loadDoctorRegistryKeys() {
   const keys = new Set();
   const re = /['"]([a-z0-9-]+)['"]\s*:/g;
   let m;
-  // crude: only inside REGISTRY object — accept known profile pattern
   const block = text.match(/const REGISTRY\s*=\s*\{([\s\S]*?)\};/);
   if (!block) return keys;
   const inner = block[1];
@@ -92,34 +85,42 @@ function loadDoctorRegistryKeys() {
 }
 
 /**
- * @param {string} rootRel
- * @returns {boolean}
+ * Validate labValidation object declares required logical keys (not Lab FS paths).
+ * @param {object|undefined} lab
+ * @returns {string[]}
  */
-function hasFixtureContent(rootRel) {
-  const root = abs(rootRel);
-  if (!exists(root)) return false;
-  // at least one nested file beyond .gitkeep
-  const stack = [root];
-  while (stack.length) {
-    const cur = stack.pop();
-    for (const ent of fs.readdirSync(cur, { withFileTypes: true })) {
-      const full = path.join(cur, ent.name);
-      if (ent.isDirectory()) stack.push(full);
-      else if (ent.isFile() && ent.name !== '.gitkeep' && ent.name !== 'README.md') return true;
+function validateLabValidationDecl(lab) {
+  const missing = [];
+  if (!lab || typeof lab !== 'object') {
+    missing.push('labValidation required for beta/stable');
+    return missing;
+  }
+  for (const key of LAB_VALIDATION_KEYS) {
+    if (!(key in lab)) missing.push(`labValidation.${key} missing`);
+  }
+  if (lab.required !== true && lab.required !== false) {
+    missing.push('labValidation.required must be boolean');
+  }
+  if (typeof lab.veracodeE2E !== 'boolean') {
+    missing.push('labValidation.veracodeE2E must be boolean');
+  }
+  for (const key of ['integrationSuite', 'contractSuite', 'goldenSuite', 'matrixKey']) {
+    if (key in lab && (lab[key] == null || String(lab[key]).trim() === '')) {
+      missing.push(`labValidation.${key} must be non-empty`);
     }
   }
-  return false;
+  return missing;
 }
 
 /**
+ * @param {string} id
  * @param {object} cap
- * @param {object} matrix
  * @param {Set<string>} doctorKeys
  * @param {string} readme
  * @param {string} packagingDoc
  * @returns {string[]}
  */
-function validateCapability(id, cap, matrix, doctorKeys, readme, packagingDoc) {
+function validateCapability(id, cap, doctorKeys, readme, packagingDoc) {
   const missing = [];
   const status = cap.status;
 
@@ -146,7 +147,7 @@ function validateCapability(id, cap, matrix, doctorKeys, readme, packagingDoc) {
     return missing;
   }
 
-  // beta + stable: full applicable contract
+  // beta + stable: Action-local contract
   if (cap.discoveryDetector) {
     if (!exists(abs(cap.discoveryDetector))) missing.push(`Discovery detector: ${cap.discoveryDetector}`);
   } else {
@@ -181,40 +182,17 @@ function validateCapability(id, cap, matrix, doctorKeys, readme, packagingDoc) {
     }
   }
 
-  if (cap.contractFamily) {
-    const cc = contractCases(cap.contractFamily);
-    if (!cc.ok)
-      missing.push(`Builder→Doctor contract cases: tests/contract/builder-doctor/${cap.contractFamily}/cases.json`);
-  } else {
-    missing.push('contractFamily required for beta/stable');
+  // contractFamily is a logical id for docs / Lab mapping — do not require local cases.json
+  if (!cap.contractFamily) {
+    missing.push('contractFamily required for beta/stable (logical id for Lab contract suite)');
   }
 
-  if (cap.integrationFixtureRoot) {
-    if (!hasFixtureContent(cap.integrationFixtureRoot)) {
-      missing.push(`Integration fixtures: ${cap.integrationFixtureRoot}`);
-    }
-  } else {
-    missing.push('integrationFixtureRoot required for beta/stable');
-  }
+  missing.push(...validateLabValidationDecl(cap.labValidation));
 
-  if (cap.goldenArtifactsRoot) {
-    if (!exists(abs(cap.goldenArtifactsRoot))) {
-      missing.push(`Golden artifacts root: ${cap.goldenArtifactsRoot}`);
+  if (cap.actionValidation) {
+    if (typeof cap.actionValidation !== 'object') {
+      missing.push('actionValidation must be an object');
     }
-  } else {
-    missing.push('goldenArtifactsRoot required for beta/stable');
-  }
-
-  if (cap.testMatrixKey) {
-    const rows = matrix[cap.testMatrixKey];
-    if (!Array.isArray(rows) || rows.length === 0) {
-      missing.push(`Test matrix key empty: ${cap.testMatrixKey}`);
-    } else {
-      const inFull = rows.some((r) => Array.isArray(r.profiles) && r.profiles.includes('full'));
-      if (!inFull) missing.push(`Test matrix ${cap.testMatrixKey}: no profile "full" entries`);
-    }
-  } else {
-    missing.push('testMatrixKey required for beta/stable');
   }
 
   if (cap.veracodePackagingSection) {
@@ -230,12 +208,12 @@ function validateCapability(id, cap, matrix, doctorKeys, readme, packagingDoc) {
   }
 
   if (status === 'stable') {
+    // Evidence lives in Lab (e2e/veracode). Action only requires the flag.
     if (!cap.veracodeE2E) {
-      missing.push('veracodeE2E must be true for status=stable');
+      missing.push('veracodeE2E must be true for status=stable (evidence lives in Lab)');
     }
-    const evidence = path.join(E2E_EVIDENCE_DIR, id, 'RESULT.md');
-    if (!exists(evidence)) {
-      missing.push(`Veracode E2E evidence missing: tests/e2e/veracode/${id}/RESULT.md`);
+    if (cap.labValidation && cap.labValidation.veracodeE2E !== true) {
+      missing.push('labValidation.veracodeE2E must be true for status=stable');
     }
   }
 
@@ -251,37 +229,27 @@ function validateCapability(id, cap, matrix, doctorKeys, readme, packagingDoc) {
  */
 function runCheck() {
   const capsDoc = JSON.parse(fs.readFileSync(CAPABILITIES_PATH, 'utf8'));
-  const matrix = JSON.parse(fs.readFileSync(TEST_MATRIX_PATH, 'utf8'));
   const doctorKeys = loadDoctorRegistryKeys();
   const readme = fs.readFileSync(README, 'utf8');
   const packagingDoc = exists(VERACODE_PACKAGING) ? fs.readFileSync(VERACODE_PACKAGING, 'utf8') : '';
 
   const failures = [];
-  const lines = ['# Feature Completeness Report', '', `| Capability | Status | Result |`, `| --- | --- | --- |`];
+  const lines = [
+    '# Feature Completeness Report (Action)',
+    '',
+    'Integration / contract / golden / matrix / Veracode E2E evidence are validated in Lab.',
+    '',
+    `| Capability | Status | Result |`,
+    `| --- | --- | --- |`
+  ];
 
   for (const [id, cap] of Object.entries(capsDoc.capabilities || {})) {
-    const missing = validateCapability(id, cap, matrix, doctorKeys, readme, packagingDoc);
+    const missing = validateCapability(id, cap, doctorKeys, readme, packagingDoc);
     if (missing.length) {
       failures.push({ id, status: cap.status, missing });
       lines.push(`| ${id} | ${cap.status} | FAIL |`);
     } else {
       lines.push(`| ${id} | ${cap.status} | PASS |`);
-    }
-  }
-
-  // Cross-check: matrix keys used by beta/stable must be declared in capabilities
-  const declaredMatrixKeys = new Set(
-    Object.values(capsDoc.capabilities || {})
-      .map((c) => c.testMatrixKey)
-      .filter(Boolean)
-  );
-  for (const key of ['javaMaven', 'javaGradle', 'javascript', 'typescript', 'dotnetModern', 'dotnetFramework']) {
-    if (Array.isArray(matrix[key]) && matrix[key].length && !declaredMatrixKeys.has(key)) {
-      failures.push({
-        id: `matrix:${key}`,
-        status: 'n/a',
-        missing: [`test-matrix.json key ${key} has cases but no capabilities.json entry owns it`]
-      });
     }
   }
 
@@ -317,6 +285,7 @@ if (require.main === module) {
 module.exports = {
   runCheck,
   validateCapability,
+  validateLabValidationDecl,
   CAPABILITIES_PATH,
   CODE
 };
