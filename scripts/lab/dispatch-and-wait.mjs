@@ -6,17 +6,21 @@
  * Fallback ONLY when no run id: search runs by event=workflow_dispatch + correlation_id
  * in display_title/name (LAB_RUN_LOOKUP_FALLBACK).
  *
+ * Deduplication: before dispatch, reuse a Lab Gate run for the same
+ * source_sha + suite when status is queued/in_progress or conclusion=success.
+ *
  * NEVER log private key, installation token, or Authorization header.
  *
  * CLI: node scripts/lab/dispatch-and-wait.mjs
  * Env: LAB_GITHUB_APP_ID, LAB_GITHUB_APP_PRIVATE_KEY, LAB_GITHUB_APP_INSTALLATION_ID?,
  *      LAB_OWNER, LAB_REPO, LAB_WORKFLOW_FILE, LAB_REF, SOURCE_*, SUITE, CORRELATION_ID,
- *      POLL_INTERVAL_MS, TIMEOUT_MS, GITHUB_API_URL
+ *      POLL_INTERVAL_MS, TIMEOUT_MS, GITHUB_API_URL, GITHUB_OUTPUT
  */
 
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import process from 'node:process';
+import { labDedupeKey } from './resolve-suite.mjs';
 
 export const ERROR_CODES = Object.freeze({
   LAB_AUTH_FAILED: 'LAB_AUTH_FAILED',
@@ -248,6 +252,106 @@ export async function dispatchWorkflow({
     runId = null;
   }
   return { runId, dispatchedAt };
+}
+
+/**
+ * Match Lab Gate run-name / display_title for SHA + suite dedupe.
+ * Lab run-name: Lab Gate | ${suite} | ${source_sha} | ${correlation_id}
+ *
+ * @param {object} run
+ * @param {string} sourceSha
+ * @param {string} suite
+ * @returns {boolean}
+ */
+export function runMatchesShaSuite(run, sourceSha, suite) {
+  const sha = String(sourceSha || '');
+  const s = String(suite || '');
+  if (!sha || !s) return false;
+  const title = `${run.display_title || ''} ${run.name || ''}`;
+  // Require both suite token and full sha in the title (run-name format).
+  const suiteMarker = `| ${s} |`;
+  return title.includes(suiteMarker) && title.includes(sha);
+}
+
+/**
+ * Find an existing Lab Gate run for the same repository + exact SHA + suite.
+ * Feature-push HEAD and PR merge SHA must not match across events — no cross-dedupe.
+ * Prefer in-flight (queued/in_progress), else successful completed.
+ * Failure/cancelled are NOT reused (allow redispatch).
+ *
+ * @param {object} params
+ * @returns {Promise<{ runId: number, htmlUrl: string, mode: 'in_flight'|'success' }|null>}
+ */
+export async function findExistingLabRun({
+  apiUrl,
+  token,
+  owner,
+  repo,
+  sourceSha,
+  suite,
+  fetchImpl = globalThis.fetch,
+  log = console
+}) {
+  const path =
+    `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/runs` +
+    `?event=workflow_dispatch&per_page=50`;
+  const res = await ghFetch(
+    apiUrl,
+    path,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${token}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'Afrika-Veracode-Build-lab-orchestrator'
+      }
+    },
+    fetchImpl
+  );
+  if (!res.ok) {
+    log.info
+      ? log.info(`LAB_DEDUPE_LOOKUP_SKIP HTTP ${res.status}`)
+      : console.log(`LAB_DEDUPE_LOOKUP_SKIP HTTP ${res.status}`);
+    return null;
+  }
+  const body = await res.json();
+  const runs = Array.isArray(body.workflow_runs) ? body.workflow_runs : [];
+  const matches = runs.filter((r) => runMatchesShaSuite(r, sourceSha, suite));
+  if (matches.length === 0) return null;
+
+  matches.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  const inFlight = matches.find((r) => r.status === 'queued' || r.status === 'in_progress');
+  if (inFlight) {
+    return {
+      runId: Number(inFlight.id),
+      htmlUrl: String(inFlight.html_url || ''),
+      mode: 'in_flight'
+    };
+  }
+
+  const success = matches.find((r) => r.status === 'completed' && r.conclusion === 'success');
+  if (success) {
+    return {
+      runId: Number(success.id),
+      htmlUrl: String(success.html_url || ''),
+      mode: 'success'
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Write GitHub Actions step outputs (lab_run_id, lab_run_url, dedupe).
+ * @param {string|undefined} outputPath
+ * @param {Record<string, string|number>} values
+ */
+export function writeGithubOutput(outputPath, values) {
+  if (!outputPath) return;
+  const lines = Object.entries(values).map(([k, v]) => `${k}=${v}`);
+  fs.appendFileSync(outputPath, `${lines.join('\n')}\n`);
 }
 
 /**
@@ -510,6 +614,10 @@ export async function main(env = process.env, deps = {}) {
     correlation_id: correlationId
   };
 
+  if (!['pr', 'full'].includes(suite)) {
+    throw labError(ERROR_CODES.LAB_RESULT_INVALID, `SUITE must be pr|full, got: ${suite}`);
+  }
+
   const jwt = createAppJwt(env.LAB_GITHUB_APP_ID, env.LAB_GITHUB_APP_PRIVATE_KEY);
   const { token } = await getInstallationToken({
     apiUrl,
@@ -520,34 +628,58 @@ export async function main(env = process.env, deps = {}) {
     fetchImpl
   });
 
-  const { runId: dispatchedRunId, dispatchedAt } = await dispatchWorkflow({
+  const sourceSha = sourceInputs.source_sha;
+  const dedupeLabel = labDedupeKey(sourceInputs.source_repository || `${owner}-action`, sourceSha, suite);
+  let dedupeMode = 'dispatched';
+  let runId = null;
+
+  const existing = await findExistingLabRun({
     apiUrl,
     token,
     owner,
     repo,
-    workflowFile,
-    ref,
-    inputs: sourceInputs,
-    fetchImpl
+    sourceSha,
+    suite,
+    fetchImpl,
+    log
   });
 
-  let runId = dispatchedRunId;
-  if (runId == null) {
-    // Fallback ONLY if return_run_details did not provide workflow_run_id.
-    runId = await findRunByCorrelation({
+  if (existing) {
+    runId = existing.runId;
+    dedupeMode = 'reused';
+    log.info
+      ? log.info(`LAB_DEDUPE_REUSE key=${dedupeLabel} runId=${runId} mode=${existing.mode}`)
+      : console.log(`LAB_DEDUPE_REUSE key=${dedupeLabel} runId=${runId} mode=${existing.mode}`);
+  } else {
+    const { runId: dispatchedRunId, dispatchedAt } = await dispatchWorkflow({
       apiUrl,
       token,
       owner,
       repo,
-      correlationId,
-      dispatchedAt,
-      fetchImpl,
-      log
+      workflowFile,
+      ref,
+      inputs: sourceInputs,
+      fetchImpl
     });
-  } else {
-    log.info
-      ? log.info(`Dispatched Lab run id=${runId} (return_run_details)`)
-      : console.log(`Dispatched Lab run id=${runId} (return_run_details)`);
+
+    runId = dispatchedRunId;
+    if (runId == null) {
+      // Fallback ONLY if return_run_details did not provide workflow_run_id.
+      runId = await findRunByCorrelation({
+        apiUrl,
+        token,
+        owner,
+        repo,
+        correlationId,
+        dispatchedAt,
+        fetchImpl,
+        log
+      });
+    } else {
+      log.info
+        ? log.info(`Dispatched Lab run id=${runId} (return_run_details)`)
+        : console.log(`Dispatched Lab run id=${runId} (return_run_details)`);
+    }
   }
 
   const { run, jobs } = await waitForRun({
@@ -565,6 +697,12 @@ export async function main(env = process.env, deps = {}) {
   });
 
   writeStepSummary(run, jobs, env.GITHUB_STEP_SUMMARY);
+  writeGithubOutput(env.GITHUB_OUTPUT, {
+    lab_run_id: run.id,
+    lab_run_url: run.html_url || '',
+    dedupe: dedupeMode,
+    suite
+  });
   return 0;
 }
 

@@ -36,15 +36,36 @@ Novos builders/doctors da Fase 2 devem ser adicionados como sub-actions em `inte
 ## Dual-repo quality
 
 ```text
-Afrika-Veracode-Build          Afrika-Veracode-Build-Lab (private)
-  Local Gate (CI)                lab-gate.yml (integration/contract/…)
-       │                              ▲
-       └─ workflow_run success ───────┘
-            Lab Orchestrator (default branch + GitHub App)
-            Check: "Lab Compatibility Gate"
+              ACTION REPOSITORY
+
+Code Change
+    │
+    ▼
+Local CI → Local Gate
+    │
+    ▼
+Trusted Orchestrator (default branch + GitHub App)
+    │ source_sha + suite=pr|full
+    ▼
+               PRIVATE LAB
+    │
+    ▼
+Checkout Action SHA (.action-under-test)
+    │
+    ▼
+Applications → Discovery → BuildPlan → Builder → Artifact → Doctor
+    │
+    ▼
+Lab Gate Result → Lab Compatibility Gate on Action SHA
 ```
 
-Branch protection: **Local Gate** + **Lab Compatibility Gate** ([BRANCH-PROTECTION.md](BRANCH-PROTECTION.md)).
+| Event                           | Suite                          |
+| ------------------------------- | ------------------------------ |
+| Feature push / PR / merge_group | `pr`                           |
+| Push `main` / schedule          | `full`                         |
+| Release candidate               | `full` + separate Veracode E2E |
+
+Branch protection: **Local Gate** + **Lab Compatibility Gate** ([BRANCH-PROTECTION.md](BRANCH-PROTECTION.md)). Details: [TEST-LAB.md](TEST-LAB.md).
 
 ## Precedencia
 

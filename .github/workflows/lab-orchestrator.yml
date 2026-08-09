@@ -5,6 +5,17 @@
 #
 # After Local Gate (workflow "CI") succeeds on a same-repo SHA, dispatches
 # Afrika-Veracode-Build-Lab lab-gate.yml via GitHub App (scripts/lab/dispatch-and-wait.mjs).
+#
+# Suites: pr | full only. Veracode E2E is a separate trusted workflow.
+#
+# Event → suite / SHA (automatic):
+#   feature push     → suite=pr, SHA=branch HEAD
+#   pull_request     → suite=pr, SHA=refs/pull/<n>/merge (not head.sha alone)
+#   merge_group      → suite=pr, SHA=merge group
+#   push main        → suite=full, SHA=main tip
+#   draft PR         → Lab deferred (DRAFT_PR_LAB_DEFERRED)
+#
+# Checks API uses GITHUB_TOKEN. GitHub App is Lab-only (dispatch/poll).
 name: Lab Orchestrator
 
 on:
@@ -14,13 +25,13 @@ on:
   workflow_dispatch:
     inputs:
       source_sha:
-        description: Full 40-hex SHA of the Action under test
+        description: Full 40-hex SHA of the Action under test (for PR validation prefer merge SHA)
         type: string
         required: true
       suite:
-        description: Lab suite profile
+        description: Lab suite profile (pr or full)
         type: choice
-        options: [pr, full, release]
+        options: [pr, full]
         default: pr
       source_ref:
         description: Optional source ref for Lab metadata
@@ -33,14 +44,19 @@ on:
         required: false
         default: ''
 
+# Minimum for trusted orchestrator: read default-branch code + publish checks.
+# pull-requests:read only for draft / merge-ref resolution helpers.
 permissions:
   contents: read
-  actions: write
   checks: write
-  statuses: write
+  pull-requests: read
 
+# Cancel only a superseded wait for the SAME CI event + SAME CI head tip.
+# Do NOT key only on branch: feature push and pull_request must both run
+# (different Branch Protection SHAs; intentional dual validation).
+# Do NOT fall back to github.sha (always default-branch tip for workflow_run).
 concurrency:
-  group: lab-orchestrator-${{ github.event.workflow_run.head_sha || inputs.source_sha || github.sha }}
+  group: lab-orchestrator-${{ github.event.workflow_run.event || github.event_name }}-${{ github.event.workflow_run.head_sha || inputs.source_sha || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -72,16 +88,20 @@ jobs:
           WR_RUN_ID: ${{ github.event.workflow_run.id }}
           WR_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
           WR_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          WR_PR_DRAFT: ${{ github.event.workflow_run.pull_requests[0].draft }}
           INPUT_SHA: ${{ inputs.source_sha }}
           INPUT_SUITE: ${{ inputs.suite }}
           INPUT_REF: ${{ inputs.source_ref }}
           INPUT_PR: ${{ inputs.source_pr_number }}
           REPO: ${{ github.repository }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           SKIP='false'
           FORK='false'
+          DRAFT='false'
+          SKIP_REASON=''
           SHA=''
           SUITE='pr'
           REF=''
@@ -90,41 +110,104 @@ jobs:
           SOURCE_RUN_ID=''
           SOURCE_RUN_ATTEMPT=''
 
+          PR_MERGE_SHA=''
+          SHA_KIND=''
+
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             SHA="${INPUT_SHA}"
             SUITE="${INPUT_SUITE:-pr}"
+            if [ "$SUITE" != "pr" ] && [ "$SUITE" != "full" ]; then
+              echo "::error::suite must be pr|full, got: ${SUITE}"
+              exit 1
+            fi
             REF="${INPUT_REF:-}"
             PR="${INPUT_PR:-}"
             SOURCE_EVENT='workflow_dispatch'
             SOURCE_RUN_ID="${GITHUB_RUN_ID}"
             SOURCE_RUN_ATTEMPT="${GITHUB_RUN_ATTEMPT}"
+            SHA_KIND='manual'
           else
-            # workflow_run: only proceed when Local Gate (CI) succeeded
+            # workflow_run path
+            SOURCE_EVENT="${WR_EVENT:-unknown}"
+            SOURCE_RUN_ID="${WR_RUN_ID}"
+            SOURCE_RUN_ATTEMPT="${WR_RUN_ATTEMPT}"
+            REF="${WR_HEAD_BRANCH:-}"
+            PR="${WR_PR_NUMBER:-}"
+
+            # Suite/SHA policy applies even when Local Gate failed (failure check
+            # must still land on the Branch Protection SHA for that event).
+            if [ "${WR_EVENT}" = "push" ] && [ "${WR_HEAD_BRANCH}" = "${DEFAULT_BRANCH}" ]; then
+              SUITE='full'
+            else
+              SUITE='pr'
+            fi
+
             if [ "${WR_CONCLUSION}" != "success" ]; then
               echo "CI conclusion=${WR_CONCLUSION} — not dispatching Lab."
               SKIP='true'
-              SHA="${WR_HEAD_SHA}"
+              SKIP_REASON='LOCAL_GATE_FAILED'
             else
-              SHA="${WR_HEAD_SHA}"
-              SOURCE_EVENT="${WR_EVENT}"
-              SOURCE_RUN_ID="${WR_RUN_ID}"
-              SOURCE_RUN_ATTEMPT="${WR_RUN_ATTEMPT}"
-              REF="${WR_HEAD_BRANCH:-}"
-              PR="${WR_PR_NUMBER:-}"
               # Fork PR: do NOT treat as PASS — publish explicit failure check.
               if [ "${WR_EVENT}" = "pull_request" ]; then
                 if [ "${WR_HEAD_FORK}" = "true" ] || { [ -n "${WR_HEAD_REPO}" ] && [ "${WR_HEAD_REPO}" != "${REPO}" ]; }; then
                   FORK='true'
                   echo "Fork PR detected (${WR_HEAD_REPO}) — PENDING_MAINTAINER_VALIDATION"
                 fi
-              fi
-              # Suite: push to default branch → full; otherwise pr
-              if [ "${WR_EVENT}" = "push" ] && [ "${WR_HEAD_BRANCH}" = "${DEFAULT_BRANCH}" ]; then
-                SUITE='full'
-              else
-                SUITE='pr'
+
+                DRAFT_FLAG="${WR_PR_DRAFT:-}"
+                if [ -z "$DRAFT_FLAG" ] && [ -n "$PR" ]; then
+                  DRAFT_FLAG="$(curl -fsSL \
+                    -H "Accept: application/vnd.github+json" \
+                    -H "Authorization: Bearer ${GH_TOKEN}" \
+                    -H "X-GitHub-Api-Version: 2022-11-28" \
+                    "https://api.github.com/repos/${REPO}/pulls/${PR}" \
+                    | jq -r '.draft // false')"
+                fi
+                if [ "$DRAFT_FLAG" = "true" ]; then
+                  DRAFT='true'
+                  SKIP_REASON='DRAFT_PR_LAB_DEFERRED'
+                  echo "Draft PR #${PR} — Lab deferred until ready_for_review"
+                fi
               fi
             fi
+
+            # For pull_request: Branch Protection + Local Gate use refs/pull/<n>/merge.
+            # Do NOT use workflow_run.head_sha alone (that is the feature tip).
+            if [ "${WR_EVENT}" = "pull_request" ]; then
+              if [ -z "$PR" ]; then
+                echo "::error::pull_request event without PR number — cannot resolve merge SHA"
+                exit 1
+              fi
+              PR_MERGE_SHA="$(curl -fsSL \
+                -H "Accept: application/vnd.github+json" \
+                -H "Authorization: Bearer ${GH_TOKEN}" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "https://api.github.com/repos/${REPO}/git/ref/pull/${PR}/merge" \
+                | jq -r '.object.sha // empty')"
+              if ! [[ "${PR_MERGE_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+                echo "::error::Failed to resolve refs/pull/${PR}/merge SHA (got: ${PR_MERGE_SHA:-empty})"
+                exit 1
+              fi
+              REF="refs/pull/${PR}/merge"
+              echo "PR #${PR}: feature tip=${WR_HEAD_SHA}; using merge SHA=${PR_MERGE_SHA}"
+            fi
+
+            RESOLVED="$(
+              SOURCE_EVENT="${SOURCE_EVENT}" \
+              HEAD_SHA="${WR_HEAD_SHA}" \
+              PR_MERGE_SHA="${PR_MERGE_SHA}" \
+              MERGE_GROUP_SHA="${WR_HEAD_SHA}" \
+              HEAD_BRANCH="${WR_HEAD_BRANCH}" \
+              DEFAULT_BRANCH="${DEFAULT_BRANCH}" \
+              node ./scripts/lab/resolve-source-sha.mjs
+            )" || {
+              echo "::error::resolveSourceSha failed"
+              exit 1
+            }
+            SHA="$(printf '%s\n' "$RESOLVED" | sed -n '1p')"
+            SHA_KIND="$(printf '%s\n' "$RESOLVED" | sed -n '2p')"
+            SHA_NOTE="$(printf '%s\n' "$RESOLVED" | sed -n '3p')"
+            echo "Resolved source SHA kind=${SHA_KIND}: ${SHA_NOTE}"
           fi
 
           if [ -z "$SHA" ]; then
@@ -140,7 +223,10 @@ jobs:
           {
             echo "skip=${SKIP}"
             echo "fork=${FORK}"
+            echo "draft=${DRAFT}"
+            echo "skip_reason=${SKIP_REASON}"
             echo "source_sha=${SHA}"
+            echo "sha_kind=${SHA_KIND}"
             echo "suite=${SUITE}"
             echo "source_ref=${REF}"
             echo "source_pr_number=${PR}"
@@ -155,23 +241,67 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ steps.ctx.outputs.source_sha }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          # Do not publish success. Leave no green Lab check when Local Gate failed.
-          echo "Skipping Lab dispatch because CI did not succeed. No success check published."
+          BODY=$(jq -n \
+            --arg sha "$SHA" \
+            '{
+              name: "Lab Compatibility Gate",
+              head_sha: $sha,
+              status: "completed",
+              conclusion: "failure",
+              output: {
+                title: "Local Gate did not succeed — Lab not dispatched",
+                summary: "CI (Local Gate) did not succeed for this SHA, so Lab was not dispatched.\n\nFix Local Gate first; Lab Compatibility Gate runs automatically after the next successful CI on this branch."
+              }
+            }')
+          curl -fsSL -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${REPO}/check-runs" \
+            -d "$BODY"
+          echo "::error::Lab Compatibility Gate failed: Local Gate did not succeed — Lab not dispatched"
+          exit 1
 
-      - name: Publish PENDING_MAINTAINER_VALIDATION (fork PR)
-        if: steps.ctx.outputs.skip != 'true' && steps.ctx.outputs.fork == 'true'
+      - name: Publish DRAFT_PR_LAB_DEFERRED
+        if: steps.ctx.outputs.skip != 'true' && steps.ctx.outputs.draft == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ steps.ctx.outputs.source_sha }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          # Required checks need conclusion=success to pass. For fork MVP we publish
-          # failure with PENDING_MAINTAINER_VALIDATION so this is never a silent PASS.
-          # Maintainer re-runs trusted workflow_dispatch on the SHA after review.
-          # Future: trusted orchestrator may run Lab for fork SHAs without secrets to PR code.
+          BODY=$(jq -n \
+            --arg sha "$SHA" \
+            '{
+              name: "Lab Compatibility Gate",
+              head_sha: $sha,
+              status: "completed",
+              conclusion: "failure",
+              output: {
+                title: "DRAFT_PR_LAB_DEFERRED",
+                summary: "Draft PR: Local Gate may pass, but Lab Compatibility is deferred until **ready_for_review**.\n\nMark the PR as ready for review to run Lab suite=pr automatically. This failure must not be treated as a silent PASS."
+              }
+            }')
+          curl -fsSL -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${REPO}/check-runs" \
+            -d "$BODY"
+          echo "::error::Lab Compatibility DRAFT_PR_LAB_DEFERRED"
+          exit 1
+
+      - name: Publish PENDING_MAINTAINER_VALIDATION (fork PR)
+        if: steps.ctx.outputs.skip != 'true' && steps.ctx.outputs.draft != 'true' && steps.ctx.outputs.fork == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.ctx.outputs.source_sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
           BODY=$(jq -n \
             --arg sha "$SHA" \
             '{
@@ -193,9 +323,39 @@ jobs:
           echo "::error::Lab Compatibility PENDING_MAINTAINER_VALIDATION (fork PR)"
           exit 1
 
+      - name: Publish Lab Compatibility Gate (in progress)
+        if: steps.ctx.outputs.skip != 'true' && steps.ctx.outputs.draft != 'true' && steps.ctx.outputs.fork != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.ctx.outputs.source_sha }}
+          REPO: ${{ github.repository }}
+          CORR: ${{ steps.ctx.outputs.correlation_id }}
+          SUITE: ${{ steps.ctx.outputs.suite }}
+        run: |
+          set -euo pipefail
+          BODY=$(jq -n \
+            --arg sha "$SHA" \
+            --arg corr "$CORR" \
+            --arg suite "$SUITE" \
+            '{
+              name: "Lab Compatibility Gate",
+              head_sha: $sha,
+              status: "in_progress",
+              output: {
+                title: "Lab Compatibility Gate running",
+                summary: ("Dispatching private Lab gate (`" + $suite + "`) for `" + $sha + "` (correlation `" + $corr + "`). Dedupes same SHA+suite when a valid Lab run already exists.")
+              }
+            }')
+          curl -fsSL -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${REPO}/check-runs" \
+            -d "$BODY"
+
       - name: Dispatch Lab and wait
         id: lab
-        if: steps.ctx.outputs.skip != 'true' && steps.ctx.outputs.fork != 'true'
+        if: steps.ctx.outputs.skip != 'true' && steps.ctx.outputs.draft != 'true' && steps.ctx.outputs.fork != 'true'
         env:
           LAB_GITHUB_APP_ID: ${{ secrets.LAB_GITHUB_APP_ID }}
           LAB_GITHUB_APP_PRIVATE_KEY: ${{ secrets.LAB_GITHUB_APP_PRIVATE_KEY }}
@@ -217,37 +377,54 @@ jobs:
           TIMEOUT_MS: '3600000'
         run: node scripts/lab/dispatch-and-wait.mjs
 
+      # Never publish a hard failure when this orchestrator was superseded (cancelled).
+      # The newer run owns the check for its SHA; writing failure here races Branch Protection.
       - name: Publish Lab Compatibility Gate check
-        if: always() && steps.ctx.outputs.skip != 'true' && steps.ctx.outputs.fork != 'true' && steps.lab.outcome != 'skipped'
+        if: >-
+          always() &&
+          !cancelled() &&
+          steps.ctx.outputs.skip != 'true' &&
+          steps.ctx.outputs.draft != 'true' &&
+          steps.ctx.outputs.fork != 'true' &&
+          steps.lab.outcome != 'skipped' &&
+          steps.lab.outcome != 'cancelled'
         env:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ steps.ctx.outputs.source_sha }}
           REPO: ${{ github.repository }}
           LAB_OUTCOME: ${{ steps.lab.outcome }}
           CORR: ${{ steps.ctx.outputs.correlation_id }}
+          SUITE: ${{ steps.ctx.outputs.suite }}
+          LAB_RUN_URL: ${{ steps.lab.outputs.lab_run_url }}
+          DEDUPE: ${{ steps.lab.outputs.dedupe }}
         run: |
           set -euo pipefail
           if [ "${LAB_OUTCOME}" = "success" ]; then
             CONCLUSION=success
             TITLE='Lab Compatibility Gate passed'
-            SUMMARY="Lab gate succeeded for \`${SHA}\` (correlation \`${CORR}\`)."
+            SUMMARY="Lab gate succeeded for \`${SHA}\` (suite \`${SUITE}\`, correlation \`${CORR}\`, dedupe=\`${DEDUPE:-unknown}\`)."
           else
             CONCLUSION=failure
             TITLE='Lab Compatibility Gate failed'
-            SUMMARY="Lab gate failed or errored for \`${SHA}\` (correlation \`${CORR}\`). See Lab Orchestrator job logs."
+            SUMMARY="Lab gate failed or errored for \`${SHA}\` (suite \`${SUITE}\`, correlation \`${CORR}\`). See Lab Orchestrator job logs."
           fi
           BODY=$(jq -n \
             --arg sha "$SHA" \
             --arg conclusion "$CONCLUSION" \
             --arg title "$TITLE" \
             --arg summary "$SUMMARY" \
+            --arg details "${LAB_RUN_URL:-}" \
+            --arg suite "$SUITE" \
             '{
               name: "Lab Compatibility Gate",
               head_sha: $sha,
               status: "completed",
               conclusion: $conclusion,
-              output: { title: $title, summary: $summary }
-            }')
+              output: {
+                title: $title,
+                summary: ($summary + "\n\nSuite: `" + $suite + "`")
+              }
+            } + (if $details != "" then { details_url: $details } else {} end)')
           curl -fsSL -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${GH_TOKEN}" \

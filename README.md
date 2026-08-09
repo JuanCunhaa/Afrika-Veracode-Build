@@ -218,7 +218,16 @@ npm run check:action-pinning
 
 Os unit tests vivem em `tests/unit/` (discovery, build-plan, doctor, fingerprint, config, sanitize, utils, security/completeness, lab dispatcher) com fixtures em `tests/fixtures/unit/`. Os negative tests vivem em `tests/negative/` e provam falhas com error codes corretos (`UNSUPPORTED_LANGUAGE`, `AMBIGUOUS_PROJECT`, `DEPENDENCY_AUTH_REQUIRED`, `DOCTOR_FAILED`, …) e a distincao ERROR vs WARNING do Doctor. Sao rapidos, determinísticos e **nao** chamam a Veracode, registries externos nem credentials reais.
 
-**CI dual-repo:** workflow `CI` → job **Local Gate** (quality / unit / negative / security / secret-leak / feature-completeness). Integration, Builder→Doctor contracts, golden artifacts e matrix rodam no Lab privado apos o **Lab Orchestrator** (default branch + GitHub App). Check obrigatorio: **Lab Compatibility Gate**. Docs: [TEST-LAB](docs/TEST-LAB.md) · [BRANCH-PROTECTION](docs/BRANCH-PROTECTION.md) · [FEATURE-COMPLETENESS](docs/FEATURE-COMPLETENESS.md).
+**Development validation (dual-repo):**
+
+```text
+Feature branch push  → Local Gate + Lab suite=pr
+PR → main            → Local Gate + Lab suite=pr
+Push main            → Local Gate + Lab suite=full
+Release candidate    → Lab full + Veracode E2E (separate, when enabled)
+```
+
+Trusted **Lab Orchestrator** (default branch + GitHub App) dispatches the private Lab; check **Lab Compatibility Gate** is published on the Action SHA. Compatibility Lab uses realistic laboratory apps (not customer repos) and does not replace Veracode Cloud E2E. Docs: [TEST-LAB](docs/TEST-LAB.md) · [BRANCH-PROTECTION](docs/BRANCH-PROTECTION.md) · [FEATURE-COMPLETENESS](docs/FEATURE-COMPLETENESS.md).
 
 ## Security
 
