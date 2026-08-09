@@ -11,6 +11,7 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0
 - Trusted **Lab Orchestrator** (`.github/workflows/lab-orchestrator.yml`) + `scripts/lab/dispatch-and-wait.mjs` (GitHub App JWT, `return_run_details`, correlation fallback).
 - Docs: `docs/TEST-LAB.md`, `docs/BRANCH-PROTECTION.md`, `docs/TEST-MIGRATION-MAP.md`.
 - Unit tests for Lab dispatcher (`tests/unit/lab/`).
+- Lab Compatibility Gate published as **in_progress** as soon as Lab dispatch starts (visible on the PR while the private Lab runs).
 
 ### Changed
 
@@ -19,6 +20,8 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0
 - CI final job renamed to **Local Gate**; contract/integration matrix jobs removed from Action CI.
 - `schemas/capabilities.json` uses `actionValidation` + `labValidation` (logical Lab keys).
 - Action Completeness no longer requires local integration/contract/golden/matrix paths.
+- Lab Orchestrator concurrency groups by **source branch** (cancels superseded Lab waits on the same PR); no longer falls back to `github.sha` (default-branch tip).
+- When Local Gate fails, Lab Compatibility Gate is published as **failure** (“Lab not dispatched”) instead of leaving the required check pending.
 
 ### Removed
 

@@ -5,6 +5,10 @@
 #
 # After Local Gate (workflow "CI") succeeds on a same-repo SHA, dispatches
 # Afrika-Veracode-Build-Lab lab-gate.yml via GitHub App (scripts/lab/dispatch-and-wait.mjs).
+#
+# Automatic path (default): every PR commit / push to main that finishes CI
+# triggers this workflow via workflow_run. Manual workflow_dispatch is fallback
+# (re-run, fork maintainer validation).
 name: Lab Orchestrator
 
 on:
@@ -39,8 +43,10 @@ permissions:
   checks: write
   statuses: write
 
+# Group by source branch/PR so a new commit cancels the previous Lab wait.
+# Do NOT fall back to github.sha (always default-branch tip for workflow_run).
 concurrency:
-  group: lab-orchestrator-${{ github.event.workflow_run.head_sha || inputs.source_sha || github.sha }}
+  group: lab-orchestrator-${{ github.event.workflow_run.head_branch || inputs.source_ref || inputs.source_sha || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -155,10 +161,60 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ steps.ctx.outputs.source_sha }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          # Do not publish success. Leave no green Lab check when Local Gate failed.
-          echo "Skipping Lab dispatch because CI did not succeed. No success check published."
+          # Required check must not stay pending forever when Local Gate failed.
+          BODY=$(jq -n \
+            --arg sha "$SHA" \
+            '{
+              name: "Lab Compatibility Gate",
+              head_sha: $sha,
+              status: "completed",
+              conclusion: "failure",
+              output: {
+                title: "Local Gate did not succeed — Lab not dispatched",
+                summary: "CI (Local Gate) did not succeed for this SHA, so Lab was not dispatched.\n\nFix Local Gate first; Lab Compatibility Gate runs automatically after the next successful CI on this branch."
+              }
+            }')
+          curl -fsSL -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${REPO}/check-runs" \
+            -d "$BODY"
+          echo "::error::Lab Compatibility Gate failed: Local Gate did not succeed — Lab not dispatched"
+          exit 1
+
+      - name: Publish Lab Compatibility Gate (in progress)
+        if: steps.ctx.outputs.skip != 'true' && steps.ctx.outputs.fork != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.ctx.outputs.source_sha }}
+          REPO: ${{ github.repository }}
+          CORR: ${{ steps.ctx.outputs.correlation_id }}
+          SUITE: ${{ steps.ctx.outputs.suite }}
+        run: |
+          set -euo pipefail
+          BODY=$(jq -n \
+            --arg sha "$SHA" \
+            --arg corr "$CORR" \
+            --arg suite "$SUITE" \
+            '{
+              name: "Lab Compatibility Gate",
+              head_sha: $sha,
+              status: "in_progress",
+              output: {
+                title: "Lab Compatibility Gate running",
+                summary: ("Dispatching private Lab gate (`" + $suite + "`) for `" + $sha + "` (correlation `" + $corr + "`).")
+              }
+            }')
+          curl -fsSL -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${REPO}/check-runs" \
+            -d "$BODY"
 
       - name: Publish PENDING_MAINTAINER_VALIDATION (fork PR)
         if: steps.ctx.outputs.skip != 'true' && steps.ctx.outputs.fork == 'true'

@@ -218,7 +218,7 @@ npm run check:action-pinning
 
 Os unit tests vivem em `tests/unit/` (discovery, build-plan, doctor, fingerprint, config, sanitize, utils, security/completeness, lab dispatcher) com fixtures em `tests/fixtures/unit/`. Os negative tests vivem em `tests/negative/` e provam falhas com error codes corretos (`UNSUPPORTED_LANGUAGE`, `AMBIGUOUS_PROJECT`, `DEPENDENCY_AUTH_REQUIRED`, `DOCTOR_FAILED`, …) e a distincao ERROR vs WARNING do Doctor. Sao rapidos, determinísticos e **nao** chamam a Veracode, registries externos nem credentials reais.
 
-**CI dual-repo:** workflow `CI` → job **Local Gate** (quality / unit / negative / security / secret-leak / feature-completeness). Integration, Builder→Doctor contracts, golden artifacts e matrix rodam no Lab privado apos o **Lab Orchestrator** (default branch + GitHub App). Check obrigatorio: **Lab Compatibility Gate**. Docs: [TEST-LAB](docs/TEST-LAB.md) · [BRANCH-PROTECTION](docs/BRANCH-PROTECTION.md) · [FEATURE-COMPLETENESS](docs/FEATURE-COMPLETENESS.md).
+**CI dual-repo (automatico por commit em PR):** workflow `CI` → job **Local Gate** → `workflow_run` dispara o **Lab Orchestrator** (codigo da default branch + GitHub App) → Lab privado → check **Lab Compatibility Gate** no SHA. Integration, Builder→Doctor contracts, golden artifacts e matrix nao rodam no CI da Action. Docs: [TEST-LAB](docs/TEST-LAB.md) · [BRANCH-PROTECTION](docs/BRANCH-PROTECTION.md) · [FEATURE-COMPLETENESS](docs/FEATURE-COMPLETENESS.md).
 
 ## Security
 
