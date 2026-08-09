@@ -14,7 +14,8 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0
 - Machine-generated `schemas/certification-status.json` + event policy `schemas/event-policy.json`.
 - Automated README support matrix (`npm run docs:support:generate` / `docs:support:check`).
 - Veracode ✅ requires **all** required Pipeline Scan cases for that public row (e.g. Java Maven 17 JAR+WAR).
-- Release Veracode `full` = **all 40 Lab Compatibility Full** cases (Pipeline E2E `profile=full`).
+- Release Veracode `full` = **all 40 Lab Compatibility Full** cases, embedded in Lab Gate (`veracode_profile=full`, reuses Builder packs).
+- Lab Gate `veracode_profile` input: `none` | `representative` | `full` — Pipeline Scan in the same run after Builder→Doctor.
 
 ### Fixed
 

@@ -594,6 +594,7 @@ export async function main(env = process.env, deps = {}) {
   const workflowFile = env.LAB_WORKFLOW_FILE || 'lab-gate.yml';
   const ref = env.LAB_REF || 'main';
   const suite = env.SUITE || 'pr';
+  const veracodeProfile = env.VERACODE_PROFILE || 'none';
   const correlationId = env.CORRELATION_ID || '';
   const pollIntervalMs = Number(env.POLL_INTERVAL_MS || 15_000);
   const timeoutMs = Number(env.TIMEOUT_MS || 3_600_000);
@@ -611,11 +612,18 @@ export async function main(env = process.env, deps = {}) {
     source_run_attempt: env.SOURCE_RUN_ATTEMPT || '',
     source_pr_number: env.SOURCE_PR_NUMBER || '',
     suite,
+    veracode_profile: veracodeProfile,
     correlation_id: correlationId
   };
 
   if (!['pr', 'full'].includes(suite)) {
     throw labError(ERROR_CODES.LAB_RESULT_INVALID, `SUITE must be pr|full, got: ${suite}`);
+  }
+  if (!['none', 'representative', 'full'].includes(veracodeProfile)) {
+    throw labError(
+      ERROR_CODES.LAB_RESULT_INVALID,
+      `VERACODE_PROFILE must be none|representative|full, got: ${veracodeProfile}`
+    );
   }
 
   const jwt = createAppJwt(env.LAB_GITHUB_APP_ID, env.LAB_GITHUB_APP_PRIVATE_KEY);

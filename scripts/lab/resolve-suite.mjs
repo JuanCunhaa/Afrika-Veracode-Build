@@ -1,10 +1,11 @@
 ﻿/**
  * Pure suite / skip resolver for Trusted Lab Orchestrator.
- * Compatibility Lab modes: pr | full only (Veracode E2E is separate).
+ * Compatibility Lab: pr | full. Veracode Pipeline Scan embeds in Lab Gate via veracode_profile.
  * Event→gate policy also lives in schemas/event-policy.json.
  *
  * @typedef {'pr'|'full'} LabSuite
- * @typedef {{ suite: LabSuite, skipReason: string|null, draft: boolean }} ResolveResult
+ * @typedef {'none'|'representative'|'full'} VeracodeProfile
+ * @typedef {{ suite: LabSuite, veracodeProfile: VeracodeProfile, skipReason: string|null, draft: boolean }} ResolveResult
  */
 
 import fs from 'node:fs';
@@ -63,22 +64,23 @@ export function resolveLabSuite({
     if (s !== 'pr' && s !== 'full') {
       throw new Error(`Invalid manual suite "${s}" — only pr|full allowed`);
     }
-    return { suite: s, skipReason: null, draft: false };
+    return { suite: s, veracodeProfile: 'none', skipReason: null, draft: false };
   }
 
   if (event === 'pull_request' && draft === true) {
     return {
       suite: 'pr',
+      veracodeProfile: 'none',
       skipReason: 'DRAFT_PR_LAB_DEFERRED',
       draft: true
     };
   }
 
   if (event === 'push' && branch === def) {
-    return { suite: 'full', skipReason: null, draft: false };
+    return { suite: 'full', veracodeProfile: 'representative', skipReason: null, draft: false };
   }
 
-  return { suite: 'pr', skipReason: null, draft: Boolean(draft) };
+  return { suite: 'pr', veracodeProfile: 'none', skipReason: null, draft: Boolean(draft) };
 }
 
 /**

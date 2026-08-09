@@ -154,7 +154,7 @@ describe('resolveLabSuite', () => {
         headBranch: 'feature/x',
         defaultBranch: 'main'
       }),
-      { suite: 'pr', skipReason: null, draft: false }
+      { suite: 'pr', veracodeProfile: 'none', skipReason: null, draft: false }
     );
     assert.deepEqual(
       resolveSuite.resolveLabSuite({
@@ -162,7 +162,7 @@ describe('resolveLabSuite', () => {
         headBranch: 'feature/x',
         defaultBranch: 'main'
       }),
-      { suite: 'pr', skipReason: null, draft: false }
+      { suite: 'pr', veracodeProfile: 'none', skipReason: null, draft: false }
     );
     assert.deepEqual(
       resolveSuite.resolveLabSuite({
@@ -170,7 +170,7 @@ describe('resolveLabSuite', () => {
         headBranch: 'gh-readonly-queue/main/pr-1',
         defaultBranch: 'main'
       }),
-      { suite: 'pr', skipReason: null, draft: false }
+      { suite: 'pr', veracodeProfile: 'none', skipReason: null, draft: false }
     );
     assert.deepEqual(
       resolveSuite.resolveLabSuite({
@@ -178,7 +178,7 @@ describe('resolveLabSuite', () => {
         headBranch: 'main',
         defaultBranch: 'main'
       }),
-      { suite: 'full', skipReason: null, draft: false }
+      { suite: 'full', veracodeProfile: 'representative', skipReason: null, draft: false }
     );
     assert.deepEqual(
       resolveSuite.resolveLabSuite({
@@ -186,15 +186,17 @@ describe('resolveLabSuite', () => {
         draft: true,
         defaultBranch: 'main'
       }),
-      { suite: 'pr', skipReason: 'DRAFT_PR_LAB_DEFERRED', draft: true }
+      { suite: 'pr', veracodeProfile: 'none', skipReason: 'DRAFT_PR_LAB_DEFERRED', draft: true }
     );
     assert.deepEqual(resolveSuite.resolveLabSuite({ sourceEvent: 'workflow_dispatch', manualSuite: 'pr' }), {
       suite: 'pr',
+      veracodeProfile: 'none',
       skipReason: null,
       draft: false
     });
     assert.deepEqual(resolveSuite.resolveLabSuite({ sourceEvent: 'workflow_dispatch', manualSuite: 'full' }), {
       suite: 'full',
+      veracodeProfile: 'none',
       skipReason: null,
       draft: false
     });

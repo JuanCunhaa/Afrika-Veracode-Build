@@ -4,8 +4,7 @@
 # Flow:
 #   RELEASE CANDIDATE SHA
 #     → Local Gate (CI) must already be green for SHA (or run CI first)
-#     → Lab full
-#     → Veracode full (all 40 Lab Compatibility Full cases)
+#     → Lab Gate suite=full + veracode_profile=full (same run; packs reused)
 #     → Release Certification Gate check + release-certification.json artifact
 name: Release Certification
 
@@ -93,9 +92,9 @@ jobs:
             "https://api.github.com/repos/${REPO}/check-runs" \
             -d "$BODY"
 
-      - name: Lab Compatibility Gate (full)
+      - name: Lab Compatibility Gate (full) + Veracode Pipeline full (embedded)
         id: lab
-        if: inputs.skip_lab != true
+        if: inputs.skip_lab != true || inputs.skip_veracode != true
         env:
           LAB_GITHUB_APP_ID: ${{ secrets.LAB_GITHUB_APP_ID }}
           LAB_GITHUB_APP_PRIVATE_KEY: ${{ secrets.LAB_GITHUB_APP_PRIVATE_KEY }}
@@ -111,29 +110,11 @@ jobs:
           SOURCE_RUN_ID: ${{ github.run_id }}
           SOURCE_RUN_ATTEMPT: ${{ github.run_attempt }}
           SUITE: full
+          VERACODE_PROFILE: ${{ inputs.skip_veracode == true && 'none' || 'full' }}
           CORRELATION_ID: release-lab-${{ github.run_id }}-${{ github.run_attempt }}
           POLL_INTERVAL_MS: '15000'
-          TIMEOUT_MS: '3600000'
-        run: node scripts/lab/dispatch-and-wait.mjs
-
-      - name: Veracode Pipeline E2E (full)
-        id: veracode
-        if: inputs.skip_veracode != true
-        env:
-          LAB_GITHUB_APP_ID: ${{ secrets.LAB_GITHUB_APP_ID }}
-          LAB_GITHUB_APP_PRIVATE_KEY: ${{ secrets.LAB_GITHUB_APP_PRIVATE_KEY }}
-          LAB_GITHUB_APP_INSTALLATION_ID: ${{ secrets.LAB_GITHUB_APP_INSTALLATION_ID }}
-          LAB_OWNER: JuanCunhaa
-          LAB_REPO: Afrika-Veracode-Build-Lab
-          LAB_WORKFLOW_FILE: veracode-pipeline-e2e.yml
-          LAB_REF: main
-          SOURCE_REPOSITORY: ${{ github.repository }}
-          SOURCE_SHA: ${{ steps.ctx.outputs.source_sha }}
-          VERACODE_PROFILE: full
-          CORRELATION_ID: release-veracode-${{ github.run_id }}-${{ github.run_attempt }}
-          POLL_INTERVAL_MS: '20000'
           TIMEOUT_MS: '14400000'
-        run: node scripts/lab/dispatch-veracode-and-wait.mjs
+        run: node scripts/lab/dispatch-and-wait.mjs
 
       - name: Write release-certification.json (orchestrator view)
         if: always()
@@ -142,19 +123,26 @@ jobs:
           RELEASE: ${{ steps.ctx.outputs.release }}
           DECLARED: ${{ steps.ctx.outputs.declared_veracode_full }}
           LAB_OUTCOME: ${{ steps.lab.outcome }}
-          V_OUTCOME: ${{ steps.veracode.outcome }}
           SKIP_LAB: ${{ inputs.skip_lab }}
           SKIP_V: ${{ inputs.skip_veracode }}
         run: |
           set -euo pipefail
           LAB_PASS=false
           V_PASS=false
-          if [ "${SKIP_LAB}" = "true" ] || [ "${LAB_OUTCOME}" = "success" ]; then LAB_PASS=true; fi
-          if [ "${SKIP_V}" = "true" ]; then
-            echo "::warning::skip_veracode=true — certification cannot be PASS for release"
+          if [ "${SKIP_LAB}" = "true" ] && [ "${SKIP_V}" = "true" ]; then
+            echo "::error::Cannot skip both Lab and Veracode for release certification"
+            LAB_PASS=false
             V_PASS=false
-          elif [ "${V_OUTCOME}" = "success" ]; then
-            V_PASS=true
+          elif [ "${SKIP_V}" = "true" ]; then
+            echo "::warning::skip_veracode=true — certification cannot be PASS for release"
+            if [ "${SKIP_LAB}" = "true" ] || [ "${LAB_OUTCOME}" = "success" ]; then LAB_PASS=true; fi
+            V_PASS=false
+          else
+            # Single Lab Gate run embeds Veracode full — one outcome covers both
+            if [ "${LAB_OUTCOME}" = "success" ]; then
+              LAB_PASS=true
+              V_PASS=true
+            fi
           fi
           RESULT=FAIL
           if [ "$LAB_PASS" = "true" ] && [ "$V_PASS" = "true" ]; then RESULT=PASS; fi
@@ -174,7 +162,7 @@ jobs:
               veracodeFullPassed: (if $veracode then $declared else 0 end),
               result: $result,
               generatedAt: (now | todate),
-              note: "Orchestrator view. Lab Pipeline E2E also uploads detailed release-certification.json. Partial Veracode coverage cannot PASS release.",
+              note: "Single Lab Gate dispatch with veracode_profile=full (packs reused). Detailed release-certification.json also uploaded by Lab.",
               sca: "NOT EXECUTED",
               uploadAndScan: "NOT EXECUTED"
             }' > release-certification.json
@@ -194,7 +182,6 @@ jobs:
           SHA: ${{ steps.ctx.outputs.source_sha }}
           REPO: ${{ github.repository }}
           LAB_OUTCOME: ${{ steps.lab.outcome }}
-          V_OUTCOME: ${{ steps.veracode.outcome }}
           SKIP_V: ${{ inputs.skip_veracode }}
         run: |
           set -euo pipefail
@@ -204,7 +191,6 @@ jobs:
             --arg sha "$SHA" \
             --arg conclusion "$CONCLUSION" \
             --arg lab "${LAB_OUTCOME:-skipped}" \
-            --arg v "${V_OUTCOME:-skipped}" \
             --arg skipv "$SKIP_V" \
             '{
               name: "Release Certification Gate",
@@ -213,7 +199,7 @@ jobs:
               conclusion: $conclusion,
               output: {
                 title: (if $conclusion == "success" then "RELEASE ELIGIBLE" else "RELEASE BLOCKED" end),
-                summary: ("SHA-bound certification.\n\nLab full: `" + $lab + "`\nVeracode full: `" + $v + "`\nskip_veracode: `" + $skipv + "`\n\nDoes not publish tags. Update certification-status.json / README via docs automation after PASS.")
+                summary: ("SHA-bound certification (single Lab Gate with embedded Veracode full).\n\nLab(+Veracode): `" + $lab + "`\nskip_veracode: `" + $skipv + "`\n\nDoes not publish tags. Update certification-status.json / README via docs automation after PASS.")
               }
             }')
           curl -fsSL -X POST \
