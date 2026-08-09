@@ -6,13 +6,14 @@
 # After Local Gate (workflow "CI") succeeds on a same-repo SHA, dispatches
 # Afrika-Veracode-Build-Lab lab-gate.yml via GitHub App (scripts/lab/dispatch-and-wait.mjs).
 #
-# Suites: pr | full only. Veracode E2E is a separate trusted workflow.
+# Suites: pr | full. On push main: suite=full + veracode_profile=representative
+# embedded in the same Lab Gate run (reuses Builder packs — no second rebuild).
 #
 # Event → suite / SHA (automatic):
-#   feature push     → suite=pr, SHA=branch HEAD
-#   pull_request     → suite=pr, SHA=refs/pull/<n>/merge (not head.sha alone)
-#   merge_group      → suite=pr, SHA=merge group
-#   push main        → suite=full, SHA=main tip
+#   feature push     → suite=pr, veracode=none, SHA=branch HEAD
+#   pull_request     → suite=pr, veracode=none, SHA=refs/pull/<n>/merge
+#   merge_group      → suite=pr, veracode=none
+#   push main        → suite=full, veracode=representative, SHA=main tip
 #   draft PR         → Lab deferred (DRAFT_PR_LAB_DEFERRED)
 #
 # Checks API uses GITHUB_TOKEN. GitHub App is Lab-only (dispatch/poll).
@@ -220,6 +221,12 @@ jobs:
           fi
 
           CORR="lab-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${SHA:0:12}"
+          VERACODE_PROFILE='none'
+          LAB_TIMEOUT_MS='3600000'
+          if [ "$SUITE" = "full" ] && [ "$EVENT_NAME" = "workflow_run" ] && [ "${WR_EVENT}" = "push" ] && [ "${WR_HEAD_BRANCH}" = "${DEFAULT_BRANCH}" ]; then
+            VERACODE_PROFILE='representative'
+            LAB_TIMEOUT_MS='7200000'
+          fi
           {
             echo "skip=${SKIP}"
             echo "fork=${FORK}"
@@ -228,6 +235,8 @@ jobs:
             echo "source_sha=${SHA}"
             echo "sha_kind=${SHA_KIND}"
             echo "suite=${SUITE}"
+            echo "veracode_profile=${VERACODE_PROFILE}"
+            echo "lab_timeout_ms=${LAB_TIMEOUT_MS}"
             echo "source_ref=${REF}"
             echo "source_pr_number=${PR}"
             echo "source_event=${SOURCE_EVENT}"
@@ -372,9 +381,10 @@ jobs:
           SOURCE_RUN_ATTEMPT: ${{ steps.ctx.outputs.source_run_attempt }}
           SOURCE_PR_NUMBER: ${{ steps.ctx.outputs.source_pr_number }}
           SUITE: ${{ steps.ctx.outputs.suite }}
+          VERACODE_PROFILE: ${{ steps.ctx.outputs.veracode_profile }}
           CORRELATION_ID: ${{ steps.ctx.outputs.correlation_id }}
           POLL_INTERVAL_MS: '15000'
-          TIMEOUT_MS: '3600000'
+          TIMEOUT_MS: ${{ steps.ctx.outputs.lab_timeout_ms }}
         run: node scripts/lab/dispatch-and-wait.mjs
 
       # Never publish a hard failure when this orchestrator was superseded (cancelled).
@@ -457,14 +467,37 @@ jobs:
         run: |
           set -euo pipefail
           # Feature/PR/merge_group → Product Quality Gate (Local + Lab pr)
-          # Push main → Product Main Gate after Veracode (started below when suite=full on main)
+          # Push main → Product Main Gate (Lab full already embeds Veracode representative)
           IS_MAIN=false
           if [ "${SOURCE_EVENT}" = "push" ] && [ "${HEAD_BRANCH}" = "${DEFAULT_BRANCH}" ]; then
             IS_MAIN=true
           fi
           if [ "$IS_MAIN" = "true" ]; then
             echo "main=true" >> "$GITHUB_OUTPUT"
-            echo "Deferring Product Main Gate until Veracode representative completes"
+            if [ "${LAB_OUTCOME}" = "success" ]; then
+              CONCLUSION=success
+              TITLE='Product Main Gate passed'
+            else
+              CONCLUSION=failure
+              TITLE='Product Main Gate failed — main certification health BROKEN'
+            fi
+            BODY=$(jq -n --arg sha "$SHA" --arg conclusion "$CONCLUSION" --arg title "$TITLE" --arg lab "${LAB_OUTCOME:-skipped}" '{
+              name: "Product Main Gate",
+              head_sha: $sha,
+              status: "completed",
+              conclusion: $conclusion,
+              output: {
+                title: $title,
+                summary: ("Requires Local Gate + Lab full with embedded Veracode Pipeline E2E representative.\nLab(+Veracode): `" + $lab + "`\nRelease remains blocked while this gate fails.")
+              }
+            }')
+            curl -fsSL -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${REPO}/check-runs" \
+              -d "$BODY"
+            if [ "$CONCLUSION" != "success" ]; then exit 1; fi
             exit 0
           fi
           NAME='Product Quality Gate'
@@ -493,67 +526,4 @@ jobs:
             -d "$BODY"
           if [ "$CONCLUSION" != "success" ]; then exit 1; fi
 
-      - name: Veracode Pipeline E2E representative (main only)
-        id: veracode
-        if: >-
-          always() &&
-          !cancelled() &&
-          steps.ctx.outputs.skip != 'true' &&
-          steps.ctx.outputs.draft != 'true' &&
-          steps.ctx.outputs.fork != 'true' &&
-          steps.lab.outcome == 'success' &&
-          steps.ctx.outputs.suite == 'full' &&
-          steps.product.outputs.main == 'true'
-        env:
-          LAB_GITHUB_APP_ID: ${{ secrets.LAB_GITHUB_APP_ID }}
-          LAB_GITHUB_APP_PRIVATE_KEY: ${{ secrets.LAB_GITHUB_APP_PRIVATE_KEY }}
-          LAB_GITHUB_APP_INSTALLATION_ID: ${{ secrets.LAB_GITHUB_APP_INSTALLATION_ID }}
-          LAB_OWNER: JuanCunhaa
-          LAB_REPO: Afrika-Veracode-Build-Lab
-          LAB_WORKFLOW_FILE: veracode-pipeline-e2e.yml
-          LAB_REF: main
-          SOURCE_REPOSITORY: ${{ github.repository }}
-          SOURCE_SHA: ${{ steps.ctx.outputs.source_sha }}
-          VERACODE_PROFILE: representative
-          CORRELATION_ID: main-veracode-${{ github.run_id }}-${{ github.run_attempt }}
-          POLL_INTERVAL_MS: '20000'
-          TIMEOUT_MS: '7200000'
-        run: node scripts/lab/dispatch-veracode-and-wait.mjs
-
-      - name: Publish Product Main Gate
-        if: >-
-          always() &&
-          !cancelled() &&
-          steps.product.outputs.main == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SHA: ${{ steps.ctx.outputs.source_sha }}
-          REPO: ${{ github.repository }}
-          V_OUTCOME: ${{ steps.veracode.outcome }}
-          LAB_OUTCOME: ${{ steps.lab.outcome }}
-        run: |
-          set -euo pipefail
-          if [ "${LAB_OUTCOME}" = "success" ] && [ "${V_OUTCOME}" = "success" ]; then
-            CONCLUSION=success
-            TITLE='Product Main Gate passed'
-          else
-            CONCLUSION=failure
-            TITLE='Product Main Gate failed — main certification health BROKEN'
-          fi
-          BODY=$(jq -n --arg sha "$SHA" --arg conclusion "$CONCLUSION" --arg title "$TITLE" --arg vo "${V_OUTCOME:-skipped}" --arg lab "${LAB_OUTCOME:-skipped}" '{
-            name: "Product Main Gate",
-            head_sha: $sha,
-            status: "completed",
-            conclusion: $conclusion,
-            output: {
-              title: $title,
-              summary: ("Requires Local Gate + Lab full + Veracode Pipeline E2E representative.\nLab: `" + $lab + "`\nVeracode: `" + $vo + "`\nRelease remains blocked while this gate fails.")
-            }
-          }')
-          curl -fsSL -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${GH_TOKEN}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${REPO}/check-runs" \
-            -d "$BODY"
-          if [ "$CONCLUSION" != "success" ]; then exit 1; fi
+      # Veracode Pipeline Scan is embedded in Lab Gate (veracode_profile) — no second dispatch.
