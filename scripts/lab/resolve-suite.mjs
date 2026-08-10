@@ -87,7 +87,8 @@ export function resolveLabSuite({
  * @param {string} repository
  * @param {string} sha
  * @param {string} suite
+ * @param {string} [veracodeProfile='none']
  */
-export function labDedupeKey(repository, sha, suite) {
-  return `${repository}:${sha}:${suite}`;
+export function labDedupeKey(repository, sha, suite, veracodeProfile = 'none') {
+  return `${repository}:${sha}:${suite}:veracode=${veracodeProfile || 'none'}`;
 }
