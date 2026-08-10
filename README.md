@@ -164,12 +164,14 @@ Cobertura = **100% da matriz de suporte oficialmente declarada** — não “qua
 | Java + Gradle  | 25      |        🧪 |      🧪 |     🧪 |       ⏳ | Experimental |
 | Java + Gradle  | 26      |        🧪 |      🧪 |     🧪 |       ⏳ | Experimental |
 | JavaScript     | Node 20 |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| JavaScript     | Node 22 |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
 | TypeScript     | Node 20 |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| TypeScript     | Node 22 |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
 | .NET           | 6       |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
 | .NET           | 7       |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
 | .NET           | 8       |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
-| .NET           | 9       |        🧪 |      🧪 |     🧪 |       ⏳ | Experimental |
-| .NET           | 10      |        🧪 |      🧪 |     🧪 |       ⏳ | Experimental |
+| .NET           | 9       |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
+| .NET           | 10      |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
 | .NET Framework | 4.8     |        🧪 |      🧪 |     🧪 |       ⏳ | Beta         |
 | C++/CLI        | —       |        🧪 |      ❌ |     ❌ |       ⏳ | Experimental |
 | Xamarin/MAUI   | —       |        🧪 |      ❌ |     ❌ |       ⏳ | Experimental |

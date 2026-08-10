@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "language": "java",
+  "description": "Machine-readable Java coverage contract. Declared runtimes require Basic Maven+Gradle Lab Full coverage; special Discovery/Builder branches require at least one fixture (boundary versions may repeat critical branches).",
+  "declaredRuntimes": [
+    { "version": "8", "channel": "lts", "lifecycle": "beta" },
+    { "version": "11", "channel": "lts", "lifecycle": "beta" },
+    { "version": "17", "channel": "lts", "lifecycle": "beta" },
+    { "version": "21", "channel": "lts", "lifecycle": "beta" },
+    { "version": "25", "channel": "lts", "lifecycle": "experimental" },
+    { "version": "26", "channel": "current", "lifecycle": "experimental" }
+  ],
+  "buildSystems": ["maven", "gradle"],
+  "perRuntimeRequired": {
+    "basicMaven": true,
+    "basicGradle": true,
+    "discovery": true,
+    "builder": true,
+    "doctor": true,
+    "labFull": true,
+    "goatVulnerability": true,
+    "pipelineCertificationWhenReleaseEligible": true
+  },
+  "dimensions": [
+    {
+      "id": "runtime",
+      "values": ["8", "11", "17", "21", "25", "26"]
+    },
+    {
+      "id": "buildSystem",
+      "values": ["maven", "gradle"]
+    },
+    {
+      "id": "dsl",
+      "values": ["groovy", "kotlin"],
+      "notes": "Groovy covered by Gradle Basic; Kotlin requires dedicated fixtures."
+    },
+    {
+      "id": "framework",
+      "values": ["none", "spring-boot"],
+      "explicitlyRecognizedNotProductized": ["spring", "quarkus", "jakarta", "javaee"],
+      "notes": "Only spring-boot is a Lab product line. Other Discovery labels share the generic Maven/Gradle path."
+    },
+    {
+      "id": "artifactType",
+      "values": ["jar", "war"],
+      "notPubliclyPromised": ["ear"],
+      "notes": "EAR is detected in Discovery/Builder/Doctor but is not a public packaging promise."
+    },
+    {
+      "id": "topology",
+      "values": ["single-module", "multi-module"]
+    }
+  ],
+  "requiredBranches": [
+    {
+      "id": "maven-basic-jar",
+      "buildSystem": "maven",
+      "scenario": "Basic",
+      "artifactType": "jar",
+      "topology": "single-module",
+      "requiredOnRuntimes": "all"
+    },
+    {
+      "id": "gradle-basic-jar",
+      "buildSystem": "gradle",
+      "scenario": "Basic",
+      "artifactType": "jar",
+      "dsl": "groovy",
+      "topology": "single-module",
+      "requiredOnRuntimes": "all"
+    },
+    {
+      "id": "maven-spring-boot",
+      "buildSystem": "maven",
+      "framework": "spring-boot",
+      "artifactType": "jar",
+      "minFixtures": 1,
+      "boundaryRuntimes": ["17", "21", "25"]
+    },
+    {
+      "id": "gradle-spring-boot",
+      "buildSystem": "gradle",
+      "framework": "spring-boot",
+      "artifactType": "jar",
+      "minFixtures": 1,
+      "boundaryRuntimes": ["17", "25"]
+    },
+    {
+      "id": "maven-war",
+      "buildSystem": "maven",
+      "artifactType": "war",
+      "minFixtures": 1,
+      "boundaryRuntimes": ["17", "25"]
+    },
+    {
+      "id": "gradle-war",
+      "buildSystem": "gradle",
+      "artifactType": "war",
+      "minFixtures": 1,
+      "boundaryRuntimes": ["17", "25"]
+    },
+    {
+      "id": "maven-multi-module",
+      "buildSystem": "maven",
+      "topology": "multi-module",
+      "minFixtures": 1,
+      "boundaryRuntimes": ["17", "25"]
+    },
+    {
+      "id": "gradle-multi-module",
+      "buildSystem": "gradle",
+      "topology": "multi-module",
+      "minFixtures": 1,
+      "boundaryRuntimes": ["17", "25"]
+    },
+    {
+      "id": "gradle-kotlin-dsl",
+      "buildSystem": "gradle",
+      "dsl": "kotlin",
+      "minFixtures": 1,
+      "boundaryRuntimes": ["17", "25"]
+    }
+  ],
+  "doctorProfiles": ["java-compiled", "java-source"],
+  "packagingCertification": {
+    "java-maven-java17": ["jar", "war"],
+    "java-gradle-java17": ["jar", "war"]
+  },
+  "matrixKeys": {
+    "maven": "javaMaven",
+    "gradle": "javaGradle"
+  },
+  "caseNaming": {
+    "basic": "java{version}-basic",
+    "springBoot": "springboot-java{version}",
+    "war": "war-java{version}",
+    "multiModule": "multimodule-java{version}",
+    "kotlinDsl": "kotlin-dsl-java{version}"
+  }
+}

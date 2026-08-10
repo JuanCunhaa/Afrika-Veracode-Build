@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "language": "dotnet-modern",
+  "description": "Machine-readable .NET modern (6–10) coverage contract. Action packages FDD ZIP (DLL/EXE/PDB). Veracode: C#/VB.NET through .NET 10; ASP.NET Core through 9.0; Blazor WASM through 8.0. No SCD / NUPKG / WPF / WinForms product lines.",
+  "declaredRuntimes": [
+    { "version": "6", "channel": "legacy", "lifecycle": "beta", "veracodeDocumented": true },
+    { "version": "7", "channel": "legacy", "lifecycle": "beta", "veracodeDocumented": true },
+    { "version": "8", "channel": "lts", "lifecycle": "beta", "veracodeDocumented": true },
+    { "version": "9", "channel": "previous", "lifecycle": "beta", "veracodeDocumented": true },
+    { "version": "10", "channel": "current", "lifecycle": "beta", "veracodeDocumented": true }
+  ],
+  "languages": ["csharp", "vbnet"],
+  "projectTypes": [
+    { "id": "console", "requiredOnRuntimes": ["6", "7", "8", "9", "10"] },
+    { "id": "class-library", "requiredOnBoundaries": ["8", "10"] },
+    { "id": "webapi", "requiredOnBoundaries": ["8", "9"], "veracodeAspNetCoreMax": "9" },
+    { "id": "aspnet-core", "requiredOnBoundaries": ["8"], "veracodeAspNetCoreMax": "9" },
+    { "id": "multi-project", "requiredOnBoundaries": ["8", "10"] },
+    { "id": "blazor-wasm", "requiredOnBoundaries": ["8"], "veracodeBlazorWasmMax": "8" },
+    { "id": "vbnet", "requiredOnBoundaries": ["8"] }
+  ],
+  "artifactTypes": {
+    "produced": ["zip-of-assemblies"],
+    "assemblyKinds": ["dll", "exe"],
+    "includesPdbRecommended": true,
+    "includesDepsJsonRecommended": true,
+    "notProductized": ["nupkg", "scd-self-contained"]
+  },
+  "publishing": {
+    "modernDefault": "dotnet publish -c Debug -p:UseAppHost=false (FDD)",
+    "blazorWasm": "dotnet build -c Debug -p:UseAppHost=false -p:BlazorEnableCompression=false",
+    "forbidScdOnCertifiedLines": true
+  },
+  "notProductized": ["wpf", "winforms", "azure-functions", "aspnet-core-10", "blazor-wasm-10"],
+  "topology": {
+    "singleProject": true,
+    "multiProjectSolution": true,
+    "projectReference": true,
+    "classLibraryDependency": true
+  },
+  "matrixKey": "dotnetModern",
+  "caseMap": {
+    "console": {
+      "6": "net6-console",
+      "7": "net7-console",
+      "8": "net8-console",
+      "9": "net9-console",
+      "10": "net10-console"
+    },
+    "class-library": {
+      "8": "net8-classlibrary",
+      "10": "net10-classlibrary"
+    },
+    "webapi": {
+      "8": "net8-webapi",
+      "9": "net9-webapi"
+    },
+    "aspnet-core": {
+      "8": "net8-aspnet-core"
+    },
+    "multi-project": {
+      "8": "multi-project-solution",
+      "10": "net10-multi-project-solution"
+    },
+    "blazor-wasm": {
+      "8": "net8-blazor-wasm"
+    },
+    "vbnet": {
+      "8": "vbnet"
+    }
+  },
+  "packagingCertification": {
+    "dotnet-net6": ["assembly"],
+    "dotnet-net7": ["assembly"],
+    "dotnet-net8": ["assembly"],
+    "dotnet-net9": ["assembly", "aspnet-core"],
+    "dotnet-net10": ["assembly"]
+  },
+  "veracodeFrameworkLimits": {
+    "aspnetCore": "9.0 and earlier",
+    "blazorWasm": "8.0 and earlier",
+    "csharpVbnetRuntime": "through .NET 10"
+  }
+}

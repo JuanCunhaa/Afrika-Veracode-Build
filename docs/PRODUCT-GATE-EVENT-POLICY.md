@@ -17,17 +17,17 @@ Measured from current sources (do not hardcode elsewhere):
 
 | Matrix                                               |  Count |
 | ---------------------------------------------------- | -----: |
-| Declared support rows                                |     23 |
-| Release-eligible public rows needing Veracode        |     14 |
-| Lab PR compatibility cases                           |     14 |
-| Lab Full compatibility cases                         |     40 |
+| Declared support rows                                |     25 |
+| Release-eligible public rows needing Veracode        |     18 |
+| Lab PR compatibility cases                           |     16 |
+| Lab Full compatibility cases                         |     61 |
 | Veracode representative (sanity / main)              |      7 |
-| Veracode release **full** (= Lab Compatibility Full) | **40** |
+| Veracode release **full** (= Lab Compatibility Full) | **61** |
 
 Notes:
 
 - Legacy curated `full≈10` / derived certification-only `full≈15` are obsolete for Pipeline `profile=full`.
-- `full` = all Lab Compatibility Full cases (40). Packaging variants in `veracodeCertification.cases` still gate public-row Veracode ✅.
+- `full` = all Lab Compatibility Full cases (61). Packaging variants in `veracodeCertification.cases` still gate public-row Veracode ✅.
 - Representative stays curated (~7) for main sanity.
 - **Opção A:** Veracode Pipeline Scan runs **inside Lab Gate** (`veracode_profile`), reusing Builder `analysisPack.zip` — no second rebuild / separate workflow on main/release.
 

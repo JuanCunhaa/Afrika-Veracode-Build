@@ -94,18 +94,20 @@ function main() {
 
   const releaseFull = countReleaseVeracodeFull();
   const expectedFull = support.veracodeProfiles?.full?.expectedCaseCount;
-  if (expectedFull !== 40) {
+  if (typeof expectedFull !== 'number' || expectedFull < 1) {
     errors.push(
-      `SUPPORT_MATRIX_VERACODE_COVERAGE_MISSING: veracodeProfiles.full.expectedCaseCount must be 40 (Lab Compatibility Full), got ${expectedFull}`
+      `SUPPORT_MATRIX_VERACODE_COVERAGE_MISSING: veracodeProfiles.full.expectedCaseCount must be a positive number, got ${expectedFull}`
     );
   }
-  if (releaseFull !== 40) {
-    errors.push(`SUPPORT_MATRIX_VERACODE_COVERAGE_MISSING: countReleaseVeracodeFull() must be 40, got ${releaseFull}`);
+  if (releaseFull !== expectedFull) {
+    errors.push(
+      `SUPPORT_MATRIX_VERACODE_COVERAGE_MISSING: countReleaseVeracodeFull()=${releaseFull} must equal expectedCaseCount=${expectedFull}`
+    );
   }
   const labDeclared = countDeclaredLabCompatibilityCases();
-  if (labDeclared !== 40) {
+  if (labDeclared !== expectedFull) {
     errors.push(
-      `SUPPORT_MATRIX_LAB_COVERAGE_MISSING: declared lab.compatibilityCases unique count must be 40, got ${labDeclared}`
+      `SUPPORT_MATRIX_LAB_COVERAGE_MISSING: declared lab.compatibilityCases unique count must be ${expectedFull}, got ${labDeclared}`
     );
   }
   // Packaging variants still required for public-row Veracode ✅ (subset of Lab full)
@@ -158,7 +160,7 @@ function main() {
     `| Packaging certification variants (row ✅) | ${certVariants.length} |`,
     `| Veracode representative cases | ${repCases.length} |`,
     '',
-    'profile=full Pipeline Scan = all 40 Lab Compatibility Full cases.',
+    'profile=full Pipeline Scan = all Lab Compatibility Full cases (veracodeProfiles.full.expectedCaseCount).',
     '',
     errors.length ? `Result: ${CODE}` : 'Result: PASS',
     ...errors.map((e) => `- ${e}`)

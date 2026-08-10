@@ -6,9 +6,21 @@
     "coverageMeaning": "100% of the officially declared support matrix — not every application in existence.",
     "veracodeMeaning": "Veracode ✅ only when ALL required Pipeline Scan cases for that support row PASS. No version inference.",
     "representative": "Curated sanity set for main (cases with representative:true). Do not expand to every version.",
-    "full": "Pipeline Scan profile=full = ALL Lab Compatibility Full cases (expectedCaseCount 40). veracodeCertification.cases remain packaging variants for public-row ✅.",
+    "full": "Pipeline Scan profile=full = ALL Lab Compatibility Full cases (expectedCaseCount 61). veracodeCertification.cases remain packaging variants for public-row ✅.",
     "packagingVariants": "Distinct artifact shapes (e.g. JAR vs WAR) are separate required cases for public-row Veracode ✅ under the same support row.",
-    "labFullParity": "Release certification runs Lab Pipeline E2E profile=full (1:1 with Lab Compatibility Full)."
+    "labFullParity": "Release certification runs Lab Pipeline E2E profile=full (1:1 with Lab Compatibility Full).",
+    "java25": "Java 25 is treated as LTS (experimental Lab status until Pipeline evidence). Java 26 is current/non-LTS.",
+    "ear": "EAR is detected by Discovery/Builder/Doctor but is not a public packaging promise — no Lab EAR fixture.",
+    "quarkusMicronaut": "Framework labels (quarkus/spring/jakarta) without distinct Builder paths are Discovery metadata only; not expanded as official Lab product lines.",
+    "javascriptRuntimes": "Node 20 = legacy compatibility; Node 22 = principal Veracode-supported target. Node 24/26 must not receive Veracode ✅ until Veracode documents support.",
+    "javascriptWorkspace": "npm/yarn/pnpm workspaces are not Discovery/Builder branches — no Lab workspace fixture until product support is declared.",
+    "javascriptSvelteKoa": "svelte is Discovery-detectable but not a public Afrika capability; Koa is not detected — neither is expanded without Feature Completeness.",
+    "typescriptCompiler": "Action does not version-gate the TypeScript compiler; Veracode documents TypeScript 5 and earlier. Lab proves TS 4.9 (legacy) and TS 5.6 (current 5.x).",
+    "typescriptFrameworks": "Declared TS frameworks: Node, Express, React TSX, Next.js TSX. NestJS/Angular/Vue/Svelte+TS are not public TypeScript product lines (nestjs-typescript orphan remains unwired).",
+    "dotnetModernBoundaries": "Special scenarios use .NET 8 (LTS) + .NET 10 (current) for console/classlib/multi-project. ASP.NET Core / Web API also on .NET 9 (Veracode ASP.NET Core through 9.0). Do not invent ASP.NET Core 10 or Blazor WASM 10 Veracode PASS.",
+    "dotnetModernArtifacts": "Action packages FDD ZIP of DLL/EXE/PDB (+ deps.json). NUPKG and SCD are not product lines. WPF/WinForms/Azure Functions are Discovery-detectable but not declared public support.",
+    "dotnetModernLanguages": "C# and VB.NET are both declared; VB language branch covered once (vbnet @ net8).",
+    "dotnetFrameworkScope": "Afrika declares .NET Framework 4.8 only (not 2.0–4.7). Lab covers Console, Class Library, Multi-project, VB.NET, and classic ASP.NET on windows-latest via MSBuild. packages.config is used for classic ASP.NET SCA only — not a separate restore product line. WPF/WinForms not productized."
   },
   "veracodeProfiles": {
     "representative": {
@@ -17,7 +29,7 @@
       "description": "Curated sanity set for main"
     },
     "full": {
-      "expectedCaseCount": 40,
+      "expectedCaseCount": 61,
       "source": "lab-compatibility-full",
       "description": "All Lab Compatibility Full matrix cases (Pipeline Scan release certification)"
     }
@@ -194,7 +206,7 @@
       "lab": {
         "matrixKey": "javaMaven",
         "primaryCase": "java25-basic",
-        "compatibilityCases": ["java25-basic"],
+        "compatibilityCases": ["java25-basic", "war-java25", "springboot-java25", "multimodule-java25"],
         "profiles": ["full"]
       },
       "veracodeCertification": {
@@ -308,7 +320,13 @@
       "lab": {
         "matrixKey": "javaGradle",
         "primaryCase": "java17-basic",
-        "compatibilityCases": ["java17-basic", "kotlin-dsl-java17"],
+        "compatibilityCases": [
+          "java17-basic",
+          "kotlin-dsl-java17",
+          "springboot-java17",
+          "multimodule-java17",
+          "war-java17"
+        ],
         "profiles": ["pr", "full"]
       },
       "veracodeCertification": {
@@ -329,6 +347,22 @@
               "gradle": true
             },
             "scenario": "Gradle JAR"
+          },
+          {
+            "id": "java-gradle-war-java17",
+            "variant": "war",
+            "required": true,
+            "representative": false,
+            "family": "java-gradle",
+            "contractCase": "war-java17",
+            "fixture": "applications/java/gradle/war-java17",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "java": "17",
+              "distribution": "temurin",
+              "gradle": true
+            },
+            "scenario": "Gradle WAR packaging"
           }
         ]
       }
@@ -382,7 +416,13 @@
       "lab": {
         "matrixKey": "javaGradle",
         "primaryCase": "java25-basic",
-        "compatibilityCases": ["java25-basic"],
+        "compatibilityCases": [
+          "java25-basic",
+          "kotlin-dsl-java25",
+          "springboot-java25",
+          "multimodule-java25",
+          "war-java25"
+        ],
         "profiles": ["full"]
       },
       "veracodeCertification": {
@@ -418,11 +458,20 @@
       "declaredLifecycle": "beta",
       "releaseEligible": true,
       "veracodeCertificationRequired": true,
-      "representative": true,
+      "representative": false,
       "lab": {
         "matrixKey": "javascript",
         "primaryCase": "vanilla-node",
-        "compatibilityCases": ["vanilla-node", "nestjs-yarn", "vue-pnpm", "express", "react", "nextjs", "angular"],
+        "compatibilityCases": [
+          "vanilla-node",
+          "esm-node20",
+          "nestjs-yarn",
+          "vue-pnpm",
+          "express",
+          "react",
+          "nextjs",
+          "angular"
+        ],
         "profiles": ["pr", "full"]
       },
       "veracodeCertification": {
@@ -432,7 +481,7 @@
             "id": "javascript-node20",
             "variant": "source",
             "required": true,
-            "representative": true,
+            "representative": false,
             "family": "javascript",
             "contractCase": "vanilla-node",
             "fixture": "applications/javascript/vanilla-node",
@@ -440,7 +489,70 @@
             "setup": {
               "node": "20"
             },
-            "scenario": "Node npm"
+            "scenario": "Node 20 npm (CJS)"
+          },
+          {
+            "id": "javascript-node20-esm",
+            "variant": "esm",
+            "required": true,
+            "representative": false,
+            "family": "javascript",
+            "contractCase": "esm-node20",
+            "fixture": "applications/javascript/esm-node20",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "node": "20"
+            },
+            "scenario": "Node 20 npm (ESM)"
+          },
+          {
+            "id": "javascript-node20-react-jsx",
+            "variant": "jsx",
+            "required": true,
+            "representative": false,
+            "family": "javascript",
+            "contractCase": "react",
+            "fixture": "applications/javascript/react",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "node": "20"
+            },
+            "scenario": "React 18.3.1 JSX source"
+          }
+        ]
+      }
+    },
+    {
+      "id": "javascript-node22",
+      "capability": "javascript",
+      "technology": "JavaScript",
+      "version": "Node 22",
+      "declaredLifecycle": "beta",
+      "releaseEligible": true,
+      "veracodeCertificationRequired": true,
+      "representative": true,
+      "lab": {
+        "matrixKey": "javascript",
+        "primaryCase": "vanilla-node22",
+        "compatibilityCases": ["vanilla-node22"],
+        "profiles": ["pr", "full"]
+      },
+      "veracodeCertification": {
+        "required": true,
+        "cases": [
+          {
+            "id": "javascript-node22",
+            "variant": "source",
+            "required": true,
+            "representative": true,
+            "family": "javascript",
+            "contractCase": "vanilla-node22",
+            "fixture": "applications/javascript/vanilla-node22",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "node": "22"
+            },
+            "scenario": "Node 22 npm (CJS)"
           }
         ]
       }
@@ -453,11 +565,17 @@
       "declaredLifecycle": "beta",
       "releaseEligible": true,
       "veracodeCertificationRequired": true,
-      "representative": true,
+      "representative": false,
       "lab": {
         "matrixKey": "typescript",
         "primaryCase": "node-typescript",
-        "compatibilityCases": ["node-typescript", "react-typescript", "express-typescript", "nextjs-typescript"],
+        "compatibilityCases": [
+          "node-typescript",
+          "esm-typescript",
+          "react-typescript",
+          "express-typescript",
+          "nextjs-typescript"
+        ],
         "profiles": ["pr", "full"]
       },
       "veracodeCertification": {
@@ -467,7 +585,7 @@
             "id": "typescript-node20",
             "variant": "source",
             "required": true,
-            "representative": true,
+            "representative": false,
             "family": "typescript",
             "contractCase": "node-typescript",
             "fixture": "applications/typescript/node-typescript",
@@ -475,7 +593,70 @@
             "setup": {
               "node": "20"
             },
-            "scenario": "Node TypeScript"
+            "scenario": "Node 20 TypeScript 5.6 source"
+          },
+          {
+            "id": "typescript-node20-tsx",
+            "variant": "tsx",
+            "required": true,
+            "representative": false,
+            "family": "typescript",
+            "contractCase": "react-typescript",
+            "fixture": "applications/typescript/react-typescript",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "node": "20"
+            },
+            "scenario": "React 18.3.1 TSX source"
+          },
+          {
+            "id": "typescript-node20-esm",
+            "variant": "esm",
+            "required": true,
+            "representative": false,
+            "family": "typescript",
+            "contractCase": "esm-typescript",
+            "fixture": "applications/typescript/esm-typescript",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "node": "20"
+            },
+            "scenario": "Node 20 TypeScript ESM"
+          }
+        ]
+      }
+    },
+    {
+      "id": "typescript-node22",
+      "capability": "typescript",
+      "technology": "TypeScript",
+      "version": "Node 22",
+      "declaredLifecycle": "beta",
+      "releaseEligible": true,
+      "veracodeCertificationRequired": true,
+      "representative": true,
+      "lab": {
+        "matrixKey": "typescript",
+        "primaryCase": "node-typescript22",
+        "compatibilityCases": ["node-typescript22"],
+        "profiles": ["pr", "full"]
+      },
+      "veracodeCertification": {
+        "required": true,
+        "cases": [
+          {
+            "id": "typescript-node22",
+            "variant": "source",
+            "required": true,
+            "representative": true,
+            "family": "typescript",
+            "contractCase": "node-typescript22",
+            "fixture": "applications/typescript/node-typescript22",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "node": "22"
+            },
+            "scenario": "Node 22 TypeScript 5.6 source"
           }
         ]
       }
@@ -598,19 +779,48 @@
       "capability": "dotnet-modern",
       "technology": ".NET",
       "version": "9",
-      "declaredLifecycle": "experimental",
-      "releaseEligible": false,
-      "veracodeCertificationRequired": false,
+      "declaredLifecycle": "beta",
+      "releaseEligible": true,
+      "veracodeCertificationRequired": true,
       "representative": false,
       "lab": {
         "matrixKey": "dotnetModern",
         "primaryCase": "net9-console",
-        "compatibilityCases": ["net9-console"],
+        "compatibilityCases": ["net9-console", "net9-webapi"],
         "profiles": ["full"]
       },
       "veracodeCertification": {
-        "required": false,
-        "cases": []
+        "required": true,
+        "cases": [
+          {
+            "id": "dotnet-net9",
+            "variant": "assembly",
+            "required": true,
+            "representative": false,
+            "family": "dotnet",
+            "contractCase": "net9-console",
+            "fixture": "applications/dotnet/net9-console",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "dotnet": "9.0.x"
+            },
+            "scenario": ".NET 9 console"
+          },
+          {
+            "id": "dotnet-net9-webapi",
+            "variant": "aspnet-core",
+            "required": true,
+            "representative": false,
+            "family": "dotnet",
+            "contractCase": "net9-webapi",
+            "fixture": "applications/dotnet/net9-webapi",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "dotnet": "9.0.x"
+            },
+            "scenario": "ASP.NET Core 9 Web API (Veracode ASP.NET Core through 9.0)"
+          }
+        ]
       }
     },
     {
@@ -618,19 +828,34 @@
       "capability": "dotnet-modern",
       "technology": ".NET",
       "version": "10",
-      "declaredLifecycle": "experimental",
-      "releaseEligible": false,
-      "veracodeCertificationRequired": false,
-      "representative": true,
+      "declaredLifecycle": "beta",
+      "releaseEligible": true,
+      "veracodeCertificationRequired": true,
+      "representative": false,
       "lab": {
         "matrixKey": "dotnetModern",
         "primaryCase": "net10-console",
-        "compatibilityCases": ["net10-console"],
+        "compatibilityCases": ["net10-console", "net10-classlibrary", "net10-multi-project-solution"],
         "profiles": ["pr", "full"]
       },
       "veracodeCertification": {
-        "required": false,
-        "cases": []
+        "required": true,
+        "cases": [
+          {
+            "id": "dotnet-net10",
+            "variant": "assembly",
+            "required": true,
+            "representative": false,
+            "family": "dotnet",
+            "contractCase": "net10-console",
+            "fixture": "applications/dotnet/net10-console",
+            "buildOs": "ubuntu-latest",
+            "setup": {
+              "dotnet": "10.0.x"
+            },
+            "scenario": ".NET 10 console (no ASP.NET Core 10 / Blazor 10 invent)"
+          }
+        ]
       }
     },
     {
@@ -645,7 +870,13 @@
       "lab": {
         "matrixKey": "dotnetFramework",
         "primaryCase": "net48",
-        "compatibilityCases": ["net48"],
+        "compatibilityCases": [
+          "net48",
+          "net48-classlibrary",
+          "net48-multi-project-solution",
+          "net48-vbnet",
+          "net48-aspnet"
+        ],
         "profiles": ["pr", "full"]
       },
       "veracodeCertification": {
@@ -664,7 +895,22 @@
               "dotnet": "8.0.x",
               "framework": "net48"
             },
-            "scenario": ".NET Framework 4.8"
+            "scenario": ".NET Framework 4.8 Console"
+          },
+          {
+            "id": "dotnet-net48-aspnet",
+            "variant": "aspnet",
+            "required": true,
+            "representative": false,
+            "family": "dotnet",
+            "contractCase": "net48-aspnet",
+            "fixture": "applications/dotnet/net48-aspnet",
+            "buildOs": "windows-latest",
+            "setup": {
+              "dotnet": "8.0.x",
+              "framework": "net48"
+            },
+            "scenario": ".NET Framework 4.8 ASP.NET classic (MSBuild + Doctor ASPNET_*)"
           }
         ]
       }

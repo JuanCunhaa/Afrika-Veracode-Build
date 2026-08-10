@@ -60,11 +60,14 @@ describe('discovery / java-gradle', () => {
     assert.equal(d.runtimeVersion, '11');
   });
 
-  it('detecta multi-module settings.gradle', () => {
+  it('detecta multi-module settings.gradle e artifact patterns por modulo', () => {
     const d = detect(path.join(gradle, 'multimodule'));
     assert.equal(d.language, 'java');
     assert.equal(d.buildSystem, 'gradle');
     assert.equal(d.runtimeVersion, '17');
+    assert.ok(d.artifactCandidates.includes('api/build/libs/*.jar'));
+    assert.ok(d.artifactCandidates.includes('core/build/libs/*.jar'));
+    assert.ok(d.artifactCandidates.includes('*/build/libs/*.jar'));
   });
 
   it('detecta Gradle Wrapper', () => {

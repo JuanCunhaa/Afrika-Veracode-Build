@@ -55,6 +55,81 @@ function detectFramework(pkg) {
   return 'none';
 }
 
+/** Map Discovery framework id → package.json dependency key. */
+const FRAMEWORK_DEP_KEYS = Object.freeze({
+  next: 'next',
+  nestjs: '@nestjs/core',
+  angular: '@angular/core',
+  vue: 'vue',
+  svelte: 'svelte',
+  react: 'react',
+  express: 'express'
+});
+
+/**
+ * Exact version from package.json dependencies (not invented / not range-normalized).
+ * @param {object} pkg
+ * @param {string} framework
+ * @returns {string}
+ */
+function detectFrameworkVersion(pkg, framework) {
+  if (!framework || framework === 'none') return '';
+  const key = FRAMEWORK_DEP_KEYS[framework];
+  if (!key) return '';
+  const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+  const raw = deps[key];
+  return raw == null ? '' : String(raw);
+}
+
+/**
+ * Node module format from package.json "type" (default CommonJS).
+ * @param {object} pkg
+ * @returns {'esm'|'cjs'}
+ */
+function detectModuleFormat(pkg) {
+  if (pkg && String(pkg.type).toLowerCase() === 'module') return 'esm';
+  return 'cjs';
+}
+
+/**
+ * Exact TypeScript compiler version from package.json (dependencies or devDependencies).
+ * @param {object} pkg
+ * @returns {string}
+ */
+function detectTypescriptVersion(pkg) {
+  const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+  if (deps.typescript == null) return '';
+  return String(deps.typescript);
+}
+
+/**
+ * Lightweight tsconfig.json hints (Discovery metadata only — Builder does not compile).
+ * @param {string} root
+ * @returns {{ hasTsconfig: boolean, tsconfigJsx: string, tsconfigModule: string }}
+ */
+function detectTsconfigHints(root) {
+  if (!exists(root, 'tsconfig.json')) {
+    return { hasTsconfig: false, tsconfigJsx: '', tsconfigModule: '' };
+  }
+  const raw = readText(root, 'tsconfig.json');
+  // Strip comments for tolerant parse of Lab/unit fixtures
+  const stripped = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  let jsx = '';
+  let module = '';
+  try {
+    const cfg = JSON.parse(stripped);
+    const co = cfg.compilerOptions || {};
+    jsx = co.jsx != null ? String(co.jsx) : '';
+    module = co.module != null ? String(co.module) : '';
+  } catch {
+    const jm = raw.match(/"jsx"\s*:\s*"([^"]+)"/);
+    const mm = raw.match(/"module"\s*:\s*"([^"]+)"/);
+    if (jm) jsx = jm[1];
+    if (mm) module = mm[1];
+  }
+  return { hasTsconfig: true, tsconfigJsx: jsx, tsconfigModule: module };
+}
+
 function detectLanguage(root, pkg) {
   if (exists(root, 'tsconfig.json')) return 'typescript';
   const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
@@ -102,6 +177,17 @@ function detect(root) {
   const language = detectLanguage(root, pkg);
   const packageManager = detectPackageManager(root);
   const framework = detectFramework(pkg);
+  const frameworkVersion = detectFrameworkVersion(pkg, framework);
+  const moduleFormat = detectModuleFormat(pkg);
+  const typescriptVersion = language === 'typescript' ? detectTypescriptVersion(pkg) : '';
+  const tsconfig =
+    language === 'typescript'
+      ? detectTsconfigHints(root)
+      : {
+          hasTsconfig: false,
+          tsconfigJsx: '',
+          tsconfigModule: ''
+        };
   const runtimeVersion = detectNodeVersion(root, pkg);
   const pkgText = readText(root, 'package.json');
   const requiredEnvironmentVariables = detectRequiredEnv(root, pkgText);
@@ -116,6 +202,12 @@ function detect(root) {
     language,
     ecosystem: 'node',
     framework,
+    frameworkVersion,
+    moduleFormat,
+    typescriptVersion,
+    hasTsconfig: tsconfig.hasTsconfig,
+    tsconfigJsx: tsconfig.tsconfigJsx,
+    tsconfigModule: tsconfig.tsconfigModule,
     runtimeVersion: runtimeVersion || 'auto',
     buildSystem: packageManager,
     packageManager,
@@ -136,4 +228,12 @@ function detect(root) {
   };
 }
 
-module.exports = { detect };
+module.exports = {
+  detect,
+  detectFramework,
+  detectFrameworkVersion,
+  detectModuleFormat,
+  detectTypescriptVersion,
+  detectTsconfigHints,
+  FRAMEWORK_DEP_KEYS
+};
