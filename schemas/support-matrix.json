@@ -206,12 +206,7 @@
       "lab": {
         "matrixKey": "javaMaven",
         "primaryCase": "java25-basic",
-        "compatibilityCases": [
-          "java25-basic",
-          "war-java25",
-          "springboot-java25",
-          "multimodule-java25"
-        ],
+        "compatibilityCases": ["java25-basic", "war-java25", "springboot-java25", "multimodule-java25"],
         "profiles": ["full"]
       },
       "veracodeCertification": {
@@ -840,11 +835,7 @@
       "lab": {
         "matrixKey": "dotnetModern",
         "primaryCase": "net10-console",
-        "compatibilityCases": [
-          "net10-console",
-          "net10-classlibrary",
-          "net10-multi-project-solution"
-        ],
+        "compatibilityCases": ["net10-console", "net10-classlibrary", "net10-multi-project-solution"],
         "profiles": ["pr", "full"]
       },
       "veracodeCertification": {

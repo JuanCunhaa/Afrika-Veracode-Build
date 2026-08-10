@@ -33,18 +33,30 @@ function fullCases(testMatrix) {
 }
 
 function main() {
+  const matrixPath = path.join(LAB_ROOT, 'matrix/test-matrix.json');
+  if (!fs.existsSync(matrixPath)) {
+    console.log(
+      [
+        '# .NET Framework Coverage Contract',
+        '',
+        `Lab matrix absent at ${matrixPath} — skipping Lab corpus checks (Action-only CI).`,
+        '',
+        'Result: PASS (skipped)'
+      ].join('\n')
+    );
+    process.exit(0);
+  }
+
   const contract = loadJson(path.join(ACTION_ROOT, 'schemas/dotnet-framework-coverage-contract.json'));
   const support = loadJson(path.join(ACTION_ROOT, 'schemas/support-matrix.json'));
-  const testMatrix = loadJson(path.join(LAB_ROOT, 'matrix/test-matrix.json'));
+  const testMatrix = loadJson(matrixPath);
   /** @type {string[]} */
   const errors = [];
   const cases = fullCases(testMatrix);
   const caseIds = new Set(cases.map((c) => c.case));
 
   for (const v of (contract.declaredRuntimes || []).map((r) => String(r.version))) {
-    const row = (support.rows || []).find(
-      (r) => r.capability === 'dotnet-framework' && String(r.version) === v
-    );
+    const row = (support.rows || []).find((r) => r.capability === 'dotnet-framework' && String(r.version) === v);
     if (!row) errors.push(`DOTNET_FW_COVERAGE_RUNTIME_MISSING: support-matrix Framework ${v}`);
     if (row?.releaseEligible && row.veracodeCertificationRequired) {
       const cert = (row.veracodeCertification?.cases || []).filter((c) => c.required !== false);

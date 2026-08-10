@@ -180,11 +180,14 @@ function detect(root) {
   const frameworkVersion = detectFrameworkVersion(pkg, framework);
   const moduleFormat = detectModuleFormat(pkg);
   const typescriptVersion = language === 'typescript' ? detectTypescriptVersion(pkg) : '';
-  const tsconfig = language === 'typescript' ? detectTsconfigHints(root) : {
-    hasTsconfig: false,
-    tsconfigJsx: '',
-    tsconfigModule: ''
-  };
+  const tsconfig =
+    language === 'typescript'
+      ? detectTsconfigHints(root)
+      : {
+          hasTsconfig: false,
+          tsconfigJsx: '',
+          tsconfigModule: ''
+        };
   const runtimeVersion = detectNodeVersion(root, pkg);
   const pkgText = readText(root, 'package.json');
   const requiredEnvironmentVariables = detectRequiredEnv(root, pkgText);

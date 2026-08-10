@@ -25,9 +25,7 @@ function loadJson(p) {
 }
 
 function caseExists(matrixKey, caseId, testMatrix) {
-  return (testMatrix[matrixKey] || []).some(
-    (c) => c.case === caseId && (c.profiles || []).includes('full')
-  );
+  return (testMatrix[matrixKey] || []).some((c) => c.case === caseId && (c.profiles || []).includes('full'));
 }
 
 function fixtureExists(rel) {
@@ -50,8 +48,16 @@ function main() {
     process.exit(1);
   }
   if (!fs.existsSync(matrixPath)) {
-    console.error(`JAVA_COVERAGE_CONTRACT_INVALID: Lab matrix missing at ${matrixPath}`);
-    process.exit(1);
+    console.log(
+      [
+        '# Java Coverage Contract',
+        '',
+        `Lab matrix absent at ${matrixPath} — skipping Lab corpus checks (Action-only CI).`,
+        '',
+        'Result: PASS (skipped)'
+      ].join('\n')
+    );
+    process.exit(0);
   }
 
   const contract = loadJson(contractPath);

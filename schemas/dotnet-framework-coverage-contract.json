@@ -2,9 +2,7 @@
   "schemaVersion": 1,
   "language": "dotnet-framework",
   "description": "Machine-readable .NET Framework coverage contract. Afrika declares Framework 4.8 only. Builder uses Windows MSBuild Rebuild Debug; packages ZIP of DLL/EXE/PDB. Classic ASP.NET uses the same MSBuild path plus Doctor ASPNET_* checks.",
-  "declaredRuntimes": [
-    { "version": "4.8", "lifecycle": "beta", "veracodeDocumented": true }
-  ],
+  "declaredRuntimes": [{ "version": "4.8", "lifecycle": "beta", "veracodeDocumented": true }],
   "languages": ["csharp", "vbnet"],
   "projectTypes": [
     { "id": "console", "required": true },

@@ -29,18 +29,30 @@ function fullCases(testMatrix) {
 }
 
 function main() {
+  const matrixPath = path.join(LAB_ROOT, 'matrix/test-matrix.json');
+  if (!fs.existsSync(matrixPath)) {
+    console.log(
+      [
+        '# .NET Modern Coverage Contract',
+        '',
+        `Lab matrix absent at ${matrixPath} — skipping Lab corpus checks (Action-only CI).`,
+        '',
+        'Result: PASS (skipped)'
+      ].join('\n')
+    );
+    process.exit(0);
+  }
+
   const contract = loadJson(path.join(ACTION_ROOT, 'schemas/dotnet-modern-coverage-contract.json'));
   const support = loadJson(path.join(ACTION_ROOT, 'schemas/support-matrix.json'));
-  const testMatrix = loadJson(path.join(LAB_ROOT, 'matrix/test-matrix.json'));
+  const testMatrix = loadJson(matrixPath);
   /** @type {string[]} */
   const errors = [];
   const cases = fullCases(testMatrix);
   const caseIds = new Set(cases.map((c) => c.case));
 
   for (const v of (contract.declaredRuntimes || []).map((r) => String(r.version))) {
-    const row = (support.rows || []).find(
-      (r) => r.capability === 'dotnet-modern' && String(r.version) === v
-    );
+    const row = (support.rows || []).find((r) => r.capability === 'dotnet-modern' && String(r.version) === v);
     if (!row) errors.push(`DOTNET_COVERAGE_RUNTIME_MISSING: support-matrix .NET ${v}`);
     const consoleCase = contract.caseMap?.console?.[v];
     if (!consoleCase || !caseIds.has(consoleCase)) {

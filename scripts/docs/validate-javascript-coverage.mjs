@@ -35,18 +35,30 @@ function fullCases(testMatrix) {
 }
 
 function main() {
+  const matrixPath = path.join(LAB_ROOT, 'matrix/test-matrix.json');
+  if (!fs.existsSync(matrixPath)) {
+    console.log(
+      [
+        '# JavaScript Coverage Contract',
+        '',
+        `Lab matrix absent at ${matrixPath} — skipping Lab corpus checks (Action-only CI).`,
+        '',
+        'Result: PASS (skipped)'
+      ].join('\n')
+    );
+    process.exit(0);
+  }
+
   const contract = loadJson(path.join(ACTION_ROOT, 'schemas/javascript-coverage-contract.json'));
   const support = loadJson(path.join(ACTION_ROOT, 'schemas/support-matrix.json'));
-  const testMatrix = loadJson(path.join(LAB_ROOT, 'matrix/test-matrix.json'));
+  const testMatrix = loadJson(matrixPath);
   /** @type {string[]} */
   const errors = [];
   const cases = fullCases(testMatrix);
 
   const runtimes = (contract.declaredRuntimes || []).map((r) => String(r.version));
   for (const v of runtimes) {
-    const row = (support.rows || []).find(
-      (r) => r.capability === 'javascript' && String(r.version).includes(v)
-    );
+    const row = (support.rows || []).find((r) => r.capability === 'javascript' && String(r.version).includes(v));
     if (!row) {
       errors.push(`JS_COVERAGE_RUNTIME_MISSING: support-matrix row for Node ${v}`);
       continue;

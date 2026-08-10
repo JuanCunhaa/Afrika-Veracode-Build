@@ -72,10 +72,7 @@ function detectIncludedModules(root) {
   const modules = [];
   for (const m of settings.matchAll(/include\s*\(?([^)\n]+)\)?/gi)) {
     for (const q of String(m[1]).matchAll(/['"]([^'"]+)['"]/g)) {
-      const name = String(q[1])
-        .replace(/^:/, '')
-        .replace(/:/g, '/')
-        .trim();
+      const name = String(q[1]).replace(/^:/, '').replace(/:/g, '/').trim();
       if (name && name !== 'buildSrc') modules.push(name);
     }
   }

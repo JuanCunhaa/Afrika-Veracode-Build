@@ -63,10 +63,7 @@ describe('discovery / javascript', () => {
     const fs = require('fs');
     const os = require('os');
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'js-esm-'));
-    fs.writeFileSync(
-      path.join(tmp, 'package.json'),
-      JSON.stringify({ name: 'esm', type: 'module', dependencies: {} })
-    );
+    fs.writeFileSync(path.join(tmp, 'package.json'), JSON.stringify({ name: 'esm', type: 'module', dependencies: {} }));
     const d = detect(tmp);
     assert.equal(d.moduleFormat, 'esm');
     assert.equal(d.framework, 'none');

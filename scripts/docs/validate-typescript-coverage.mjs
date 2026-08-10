@@ -49,17 +49,29 @@ function hasExt(root, re) {
 }
 
 function main() {
+  const matrixPath = path.join(LAB_ROOT, 'matrix/test-matrix.json');
+  if (!fs.existsSync(matrixPath)) {
+    console.log(
+      [
+        '# TypeScript Coverage Contract',
+        '',
+        `Lab matrix absent at ${matrixPath} — skipping Lab corpus checks (Action-only CI).`,
+        '',
+        'Result: PASS (skipped)'
+      ].join('\n')
+    );
+    process.exit(0);
+  }
+
   const contract = loadJson(path.join(ACTION_ROOT, 'schemas/typescript-coverage-contract.json'));
   const support = loadJson(path.join(ACTION_ROOT, 'schemas/support-matrix.json'));
-  const testMatrix = loadJson(path.join(LAB_ROOT, 'matrix/test-matrix.json'));
+  const testMatrix = loadJson(matrixPath);
   /** @type {string[]} */
   const errors = [];
   const cases = fullCases(testMatrix);
 
   for (const v of (contract.declaredRuntimes || []).map((r) => String(r.version))) {
-    const row = (support.rows || []).find(
-      (r) => r.capability === 'typescript' && String(r.version).includes(v)
-    );
+    const row = (support.rows || []).find((r) => r.capability === 'typescript' && String(r.version).includes(v));
     if (!row) errors.push(`TS_COVERAGE_RUNTIME_MISSING: support-matrix Node ${v}`);
     if (!cases.some((c) => String(c.node) === v)) {
       errors.push(`TS_COVERAGE_RUNTIME_MISSING: Lab full case node=${v}`);
@@ -105,7 +117,7 @@ function main() {
     if (d.language !== 'typescript') {
       errors.push(`TS_COVERAGE_CONTRACT_INVALID: ${c.case} not detected as typescript`);
     }
-    if (!d.typescriptVersion && !(c.typescriptVersion)) {
+    if (!d.typescriptVersion && !c.typescriptVersion) {
       errors.push(`TS_COVERAGE_TYPESCRIPT_VERSION_MISSING: ${c.case}`);
     }
     if (!hasExt(root, /\.(ts|tsx)$/i)) {
