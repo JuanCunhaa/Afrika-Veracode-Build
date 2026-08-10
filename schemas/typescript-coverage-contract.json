@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "language": "typescript",
+  "description": "Machine-readable TypeScript coverage contract. Action packages TypeScript as SOURCE_PACKAGE (shared JS builder). Veracode documents TypeScript 5 and earlier — Lab proves 4.9 + 5.x boundaries without minor cartesian explosion.",
+  "declaredRuntimes": [
+    { "version": "20", "channel": "legacy", "lifecycle": "beta", "veracodeDocumented": true },
+    { "version": "22", "channel": "current", "lifecycle": "beta", "veracodeDocumented": true }
+  ],
+  "typescriptCompiler": {
+    "actionDeclaresSpecificVersions": false,
+    "veracodeSupports": "TypeScript 5 and earlier",
+    "labBoundaries": [
+      { "version": "4.9.5", "role": "legacy-still-in-veracode-window" },
+      { "version": "5.6.3", "role": "current-5x" }
+    ],
+    "notes": "Discovery records exact package.json typescript version. Builder does not invoke tsc."
+  },
+  "packageManagers": ["npm", "yarn", "pnpm"],
+  "moduleFormats": ["cjs", "esm"],
+  "declaredFrameworks": [
+    { "id": "none", "displayName": "Node TS", "depKey": null },
+    { "id": "express", "displayName": "Express TS", "depKey": "express" },
+    { "id": "react", "displayName": "React TSX", "depKey": "react", "requiresTsx": true },
+    { "id": "next", "displayName": "Next.js TSX", "depKey": "next", "requiresTsx": true }
+  ],
+  "notProductized": ["nestjs", "angular", "vue", "svelte"],
+  "topology": {
+    "singlePackage": true,
+    "workspace": false,
+    "notes": "TS workspaces are not Discovery/Builder branches."
+  },
+  "tsconfig": {
+    "builderReadsTsconfig": false,
+    "discoveryUsesTsconfigForLanguage": true,
+    "discoveryRecords": ["hasTsconfig", "tsconfigJsx", "tsconfigModule"],
+    "doctorRequiresOriginalTsSources": true
+  },
+  "matrixKey": "typescript",
+  "packagingCertification": {
+    "typescript-node20": ["source", "tsx", "esm"],
+    "typescript-node22": ["source"]
+  }
+}

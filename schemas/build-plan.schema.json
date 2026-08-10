@@ -11,6 +11,12 @@
     "buildSystem": { "type": "string" },
     "runtimeVersion": { "type": "string" },
     "framework": { "type": "string" },
+    "frameworkVersion": { "type": "string" },
+    "moduleFormat": { "type": "string", "enum": ["cjs", "esm", ""] },
+    "typescriptVersion": { "type": "string" },
+    "hasTsconfig": { "type": "boolean" },
+    "tsconfigJsx": { "type": "string" },
+    "tsconfigModule": { "type": "string" },
     "strategy": {
       "type": "string",
       "enum": [

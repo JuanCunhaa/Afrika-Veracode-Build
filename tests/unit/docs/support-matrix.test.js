@@ -102,16 +102,22 @@ describe('support-matrix generator', () => {
     assert.equal(both.statusKey, 'stable');
   });
 
-  it('release Veracode full is all 40 Lab Compatibility Full cases', async () => {
+  it('release Veracode full is all Lab Compatibility Full cases', async () => {
     lib = lib || (await import(pathToFileURL(LIB).href));
+    const support = lib.loadSupportMatrix();
+    const expected = support.veracodeProfiles.full.expectedCaseCount;
     const n = lib.countReleaseVeracodeFull();
-    assert.equal(n, 40);
-    assert.equal(lib.countDeclaredLabCompatibilityCases(), 40);
+    assert.equal(n, expected);
+    assert.equal(lib.countDeclaredLabCompatibilityCases(), expected);
     const packaging = lib.buildPipelineCasesFromSupport(undefined, 'full');
     assert.ok(packaging.length >= 14, `packaging variants expected ≥14, got ${packaging.length}`);
     assert.ok(
       packaging.some((c) => c.id === 'java-maven-war-java17'),
       'WAR must remain a packaging variant'
+    );
+    assert.ok(
+      packaging.some((c) => c.id === 'java-gradle-war-java17'),
+      'Gradle WAR must be a packaging variant'
     );
     assert.ok(
       packaging.some((c) => c.id === 'java-maven-java8'),

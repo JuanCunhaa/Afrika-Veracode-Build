@@ -13,6 +13,8 @@ describe('discovery / typescript', () => {
     const d = detect(path.join(pkgs, 'typescript-react'));
     assert.equal(d.language, 'typescript');
     assert.equal(d.framework, 'react');
+    assert.ok(d.typescriptVersion);
+    assert.equal(d.hasTsconfig, true);
     assert.equal(d.doctorProfile, 'typescript-source');
     assert.equal(d.packagingStrategy, 'SOURCE_PACKAGE');
   });
@@ -23,5 +25,12 @@ describe('discovery / typescript', () => {
     const d = detect(path.join(pkgs, 'typescript-react'));
     assert.equal(d.language, 'typescript');
     assert.ok(d.ecosystem === 'node');
+  });
+
+  it('captura typescriptVersion e tsconfig module/jsx', () => {
+    const d = detect(path.join(pkgs, 'typescript-react'));
+    assert.equal(d.language, 'typescript');
+    assert.match(String(d.typescriptVersion), /[0-9]/);
+    assert.ok(d.hasTsconfig);
   });
 });

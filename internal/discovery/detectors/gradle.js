@@ -61,6 +61,28 @@ function detectWar(build) {
 }
 
 /**
+ * Parse `include 'core'` / `include("api", "core")` from settings.gradle(.kts).
+ * Multi-module jars land under `<module>/build/libs/`, not root `build/libs/`.
+ * @param {string} root
+ * @returns {string[]}
+ */
+function detectIncludedModules(root) {
+  const settings = readText(root, 'settings.gradle.kts') || readText(root, 'settings.gradle');
+  if (!settings) return [];
+  const modules = [];
+  for (const m of settings.matchAll(/include\s*\(?([^)\n]+)\)?/gi)) {
+    for (const q of String(m[1]).matchAll(/['"]([^'"]+)['"]/g)) {
+      const name = String(q[1])
+        .replace(/^:/, '')
+        .replace(/:/g, '/')
+        .trim();
+      if (name && name !== 'buildSrc') modules.push(name);
+    }
+  }
+  return [...new Set(modules)];
+}
+
+/**
  * @param {string} root
  * @returns {object|null}
  */
@@ -79,15 +101,31 @@ function detect(root) {
     readText(root, 'settings.gradle.kts') ||
     readText(root, 'settings.gradle');
 
-  const runtimeVersion = detectJavaVersion(root, build);
-  const framework = detectFramework(build);
-  const isWar = detectWar(build);
+  // Prefer root build for version/framework; also scan settings + first-level modules.
+  const modules = detectIncludedModules(root);
+  const moduleBuildText = modules
+    .map((mod) => readText(root, `${mod}/build.gradle.kts`) || readText(root, `${mod}/build.gradle`))
+    .join('\n');
+  const scanText = `${build}\n${moduleBuildText}`;
+
+  const runtimeVersion = detectJavaVersion(root, scanText);
+  const framework = detectFramework(scanText);
+  const isWar = detectWar(scanText);
   const wrapper =
     process.platform === 'win32' && exists(root, 'gradlew.bat')
       ? 'gradlew.bat'
       : exists(root, 'gradlew')
         ? './gradlew'
         : 'gradle';
+
+  const rootPatterns = isWar ? ['build/libs/*.war', 'build/libs/*.jar'] : ['build/libs/*.jar'];
+  const modulePatterns = modules.flatMap((mod) =>
+    isWar ? [`${mod}/build/libs/*.war`, `${mod}/build/libs/*.jar`] : [`${mod}/build/libs/*.jar`]
+  );
+  const artifactCandidates =
+    modules.length > 0
+      ? [...modulePatterns, ...rootPatterns, '*/build/libs/*.jar', '*/build/libs/*.war']
+      : rootPatterns;
 
   return {
     schemaVersion: 1,
@@ -100,7 +138,7 @@ function detect(root) {
     projectType: isWar ? 'web' : 'library-or-app',
     projectPath: '.',
     packagingStrategy: 'HYBRID',
-    artifactCandidates: isWar ? ['build/libs/*.war', 'build/libs/*.jar'] : ['build/libs/*.jar'],
+    artifactCandidates,
     packaging: isWar ? 'war' : 'jar',
     wrapper,
     requiredEnvironmentVariables: [],

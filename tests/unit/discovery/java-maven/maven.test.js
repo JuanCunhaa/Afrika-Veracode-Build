@@ -101,18 +101,20 @@ describe('discovery / java-maven', () => {
     assert.equal(detect(dir), null);
   });
 
-  it('emite warning para maven-shade-plugin', () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'maven-shade-'));
+  it('detecta Quarkus e prioriza *-runner.jar nos artifactCandidates', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'maven-quarkus-'));
     fs.writeFileSync(
       path.join(dir, 'pom.xml'),
       `<?xml version="1.0"?><project>
   <modelVersion>4.0.0</modelVersion>
   <groupId>c</groupId><artifactId>a</artifactId><version>1</version>
   <properties><maven.compiler.release>17</maven.compiler.release></properties>
-  <build><plugins><plugin><artifactId>maven-shade-plugin</artifactId></plugin></plugins></build>
+  <dependencies><dependency><groupId>io.quarkus</groupId><artifactId>quarkus-core</artifactId><version>3.15.1</version></dependency></dependencies>
 </project>`
     );
     const d = detect(dir);
-    assert.ok(d.warnings.some((w) => /Shade/i.test(w)));
+    assert.equal(d.framework, 'quarkus');
+    assert.ok(d.artifactCandidates.includes('target/*-runner.jar'));
+    assert.ok(d.artifactCandidates.includes('target/*.jar'));
   });
 });

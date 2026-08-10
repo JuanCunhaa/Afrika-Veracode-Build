@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "language": "javascript",
+  "description": "Machine-readable JavaScript coverage contract. Declared Node runtimes require Lab Full + Pipeline certification cases when release-eligible. Framework versions must come from package.json.",
+  "declaredRuntimes": [
+    { "version": "20", "channel": "legacy", "lifecycle": "beta", "veracodeDocumented": true },
+    { "version": "22", "channel": "current", "lifecycle": "beta", "veracodeDocumented": true }
+  ],
+  "notCertifiedRuntimes": ["24", "26"],
+  "packageManagers": ["npm", "yarn", "pnpm"],
+  "moduleFormats": ["cjs", "esm"],
+  "sourceExtensions": [".js", ".jsx", ".mjs", ".cjs"],
+  "declaredFrameworks": [
+    { "id": "none", "displayName": "Node", "depKey": null },
+    { "id": "express", "displayName": "Express", "depKey": "express" },
+    { "id": "react", "displayName": "React", "depKey": "react", "requiresJsx": true },
+    { "id": "next", "displayName": "Next.js", "depKey": "next" },
+    { "id": "angular", "displayName": "Angular", "depKey": "@angular/core" },
+    { "id": "vue", "displayName": "Vue", "depKey": "vue" },
+    { "id": "nestjs", "displayName": "NestJS", "depKey": "@nestjs/core" }
+  ],
+  "discoveryDetectableNotProductized": ["svelte"],
+  "topology": {
+    "singlePackage": true,
+    "workspace": false,
+    "notes": "Workspace/monorepo is not a Discovery/Builder branch — do not add fixtures until declared."
+  },
+  "matrixKey": "javascript",
+  "perRuntimeRequired": {
+    "basicNpm": true,
+    "discovery": true,
+    "builder": true,
+    "doctor": true,
+    "labFull": true,
+    "goatVulnerability": true,
+    "pipelineCertificationWhenReleaseEligible": true
+  },
+  "packagingCertification": {
+    "javascript-node20": ["source", "esm", "jsx"],
+    "javascript-node22": ["source"]
+  }
+}

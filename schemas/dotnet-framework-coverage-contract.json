@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "language": "dotnet-framework",
+  "description": "Machine-readable .NET Framework coverage contract. Afrika declares Framework 4.8 only. Builder uses Windows MSBuild Rebuild Debug; packages ZIP of DLL/EXE/PDB. Classic ASP.NET uses the same MSBuild path plus Doctor ASPNET_* checks.",
+  "declaredRuntimes": [
+    { "version": "4.8", "lifecycle": "beta", "veracodeDocumented": true }
+  ],
+  "languages": ["csharp", "vbnet"],
+  "projectTypes": [
+    { "id": "console", "required": true },
+    { "id": "class-library", "required": true },
+    { "id": "multi-project", "required": true },
+    { "id": "vbnet", "required": true },
+    { "id": "aspnet", "required": true }
+  ],
+  "artifactTypes": {
+    "produced": ["zip-of-assemblies"],
+    "assemblyKinds": ["dll", "exe"],
+    "includesPdbRecommended": true,
+    "notProductized": ["nupkg", "scd-self-contained"]
+  },
+  "publishing": {
+    "frameworkDefault": "msbuild /t:Rebuild /p:Configuration=Debug /p:DebugSymbols=true /p:PrecompileBeforePublish=true /p:EnableUpdateable=false /p:OutputPath=<dir>; strip roslyn",
+    "restore": "dotnet restore",
+    "runnerOs": ["windows"]
+  },
+  "notProductized": ["wpf", "winforms", "net47-and-older", "packages.config-as-separate-product-line"],
+  "matrixKey": "dotnetFramework",
+  "caseMap": {
+    "console": "net48",
+    "class-library": "net48-classlibrary",
+    "multi-project": "net48-multi-project-solution",
+    "vbnet": "net48-vbnet",
+    "aspnet": "net48-aspnet"
+  },
+  "packagingCertification": {
+    "dotnet-net48": ["assembly", "aspnet"]
+  },
+  "potentialLegacyExpansion": {
+    "note": "Veracode documents older Framework versions; Afrika does not declare them.",
+    "versionsNotDeclared": ["2.0", "3.0", "3.5", "4.0", "4.5", "4.6", "4.7"]
+  }
+}

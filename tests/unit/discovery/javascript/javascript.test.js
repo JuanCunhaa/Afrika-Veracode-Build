@@ -23,6 +23,8 @@ describe('discovery / javascript', () => {
     const d = detect(path.join(pkgs, 'javascript-express'));
     assert.equal(d.language, 'javascript');
     assert.equal(d.framework, 'express');
+    assert.equal(d.frameworkVersion, '^4.19.0');
+    assert.equal(d.moduleFormat, 'cjs');
     assert.equal(d.packageManager, 'npm');
     assert.equal(d.runtimeVersion, '20.11.0');
     assert.equal(d.confidence, 'HIGH');
@@ -32,25 +34,43 @@ describe('discovery / javascript', () => {
   it('detecta Next.js (prioridade sobre react)', () => {
     const d = detect(path.join(pkgs, 'nextjs'));
     assert.equal(d.framework, 'next');
+    assert.ok(d.frameworkVersion);
     assert.equal(d.packageManager, 'npm');
   });
 
   it('detecta NestJS com yarn', () => {
     const d = detect(path.join(pkgs, 'nestjs'));
     assert.equal(d.framework, 'nestjs');
+    assert.ok(d.frameworkVersion);
     assert.equal(d.packageManager, 'yarn');
   });
 
   it('detecta Angular com pnpm', () => {
     const d = detect(path.join(pkgs, 'angular'));
     assert.equal(d.framework, 'angular');
+    assert.ok(d.frameworkVersion);
     assert.equal(d.packageManager, 'pnpm');
   });
 
   it('detecta Vue com npm-shrinkwrap', () => {
     const d = detect(path.join(pkgs, 'vue'));
     assert.equal(d.framework, 'vue');
+    assert.ok(d.frameworkVersion);
     assert.equal(d.packageManager, 'npm');
+  });
+
+  it('detecta ESM via package.json type=module', () => {
+    const fs = require('fs');
+    const os = require('os');
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'js-esm-'));
+    fs.writeFileSync(
+      path.join(tmp, 'package.json'),
+      JSON.stringify({ name: 'esm', type: 'module', dependencies: {} })
+    );
+    const d = detect(tmp);
+    assert.equal(d.moduleFormat, 'esm');
+    assert.equal(d.framework, 'none');
+    assert.equal(d.frameworkVersion, '');
   });
 
   it('runtime via .nvmrc', () => {

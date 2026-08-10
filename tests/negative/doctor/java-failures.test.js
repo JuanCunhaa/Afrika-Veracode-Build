@@ -73,4 +73,23 @@ describe('negative / doctor / java', () => {
     assert.equal(war.status, 'WARN');
     assert.equal(result.status, 'READY_WITH_WARNINGS');
   });
+
+  it('java-source profile exige .java e nao bytecode', () => {
+    const { zip } = zipFromFiles({
+      'src/main/java/com/example/App.java': 'package com.example; class App {}'
+    });
+    const result = doctorJava(zip, { doctorProfile: 'java-source' });
+    assert.notEqual(result.status, 'INVALID');
+    assert.equal(result.checks.find((c) => c.id === 'JAVA_SOURCE_PRESENT').status, 'PASS');
+    assert.ok(!result.checks.some((c) => c.id === 'JAVA_BYTECODE_PRESENT'));
+  });
+
+  it('java-source sem .java → INVALID', () => {
+    const { zip } = zipFromFiles({
+      'README.txt': 'no sources'
+    });
+    const result = doctorJava(zip, { doctorProfile: 'java-source', javaPackageMode: 'source' });
+    assert.equal(result.status, 'INVALID');
+    assert.equal(result.checks.find((c) => c.id === 'JAVA_SOURCE_PRESENT').status, 'FAIL');
+  });
 });
