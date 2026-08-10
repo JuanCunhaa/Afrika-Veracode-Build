@@ -6,6 +6,8 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-10
+
 ### Added
 
 - **Product Quality Gate** / **Product Main Gate** (`.github/workflows/product-gate.yml` + Lab Orchestrator publishing).
@@ -14,8 +16,9 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0
 - Machine-generated `schemas/certification-status.json` + event policy `schemas/event-policy.json`.
 - Automated README support matrix (`npm run docs:support:generate` / `docs:support:check`).
 - Veracode ✅ requires **all** required Pipeline Scan cases for that public row (e.g. Java Maven 17 JAR+WAR).
-- Release Veracode `full` = **all 40 Lab Compatibility Full** cases, embedded in Lab Gate (`veracode_profile=full`, reuses Builder packs).
+- Release Veracode `full` = **all 61 Lab Compatibility Full** cases, embedded in Lab Gate (`veracode_profile=full`, reuses Builder packs).
 - Lab Gate `veracode_profile` input: `none` | `representative` | `full` — Pipeline Scan in the same run after Builder→Doctor.
+- Declared language coverage contracts (Java, JavaScript, TypeScript, .NET modern 6–10, .NET Framework 4.8) with Lab Full parity validators.
 
 ### Fixed
 
@@ -85,6 +88,7 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0
 - Build Config remoto atualizavel com fingerprint SHA-256 e GitHub App/PAT.
 - Inputs, outputs, codigos de erro padronizados e documentacao completa do MVP.
 
+[0.2.0]: https://github.com/JuanCunhaa/Afrika-Veracode-Build/releases/tag/v0.2.0
 [0.1.3]: https://github.com/JuanCunhaa/Afrika-Veracode-Build/releases/tag/v0.1.3
 [0.1.2]: https://github.com/JuanCunhaa/Afrika-Veracode-Build/releases/tag/v0.1.2
 [0.1.1]: https://github.com/JuanCunhaa/Afrika-Veracode-Build/releases/tag/v0.1.1
