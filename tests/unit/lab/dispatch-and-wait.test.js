@@ -203,10 +203,14 @@ describe('resolveLabSuite', () => {
     assert.throws(() => resolveSuite.resolveLabSuite({ sourceEvent: 'workflow_dispatch', manualSuite: 'release' }));
   });
 
-  it('labDedupeKey includes repo sha suite', () => {
+  it('labDedupeKey includes repo sha suite and veracode profile', () => {
     assert.equal(
       resolveSuite.labDedupeKey('JuanCunhaa/Afrika-Veracode-Build', 'abc', 'pr'),
-      'JuanCunhaa/Afrika-Veracode-Build:abc:pr'
+      'JuanCunhaa/Afrika-Veracode-Build:abc:pr:veracode=none'
+    );
+    assert.equal(
+      resolveSuite.labDedupeKey('JuanCunhaa/Afrika-Veracode-Build', 'abc', 'full', 'full'),
+      'JuanCunhaa/Afrika-Veracode-Build:abc:full:veracode=full'
     );
   });
 });
@@ -233,7 +237,7 @@ describe('dispatch-and-wait', () => {
           status: 'completed',
           conclusion: 'success',
           html_url: 'https://example/4242',
-          display_title: `Lab Gate | pr | ${sha} | corr-1`,
+          display_title: `Lab Gate | pr | veracode=none | ${sha} | corr-1`,
           name: 'Lab Gate'
         }
       },
@@ -284,7 +288,7 @@ describe('dispatch-and-wait', () => {
               conclusion: 'success',
               created_at: new Date().toISOString(),
               html_url: 'https://example/9001',
-              display_title: `Lab Gate | pr | ${sha} | prior-corr`,
+              display_title: `Lab Gate | pr | veracode=none | ${sha} | prior-corr`,
               name: 'Lab Gate'
             }
           ]
@@ -297,7 +301,7 @@ describe('dispatch-and-wait', () => {
           status: 'completed',
           conclusion: 'success',
           html_url: 'https://example/9001',
-          display_title: `Lab Gate | pr | ${sha} | prior-corr`,
+          display_title: `Lab Gate | pr | veracode=none | ${sha} | prior-corr`,
           name: 'Lab Gate'
         }
       },
@@ -347,7 +351,7 @@ describe('dispatch-and-wait', () => {
               status: 'completed',
               conclusion: 'success',
               created_at: new Date().toISOString(),
-              display_title: `Lab Gate | pr | ${sha} | x`,
+              display_title: `Lab Gate | pr | veracode=none | ${sha} | x`,
               name: 'Lab Gate'
             }
           ]
@@ -365,7 +369,7 @@ describe('dispatch-and-wait', () => {
           status: 'completed',
           conclusion: 'success',
           html_url: 'https://example/66',
-          display_title: `Lab Gate | full | ${sha} | y`,
+          display_title: `Lab Gate | full | veracode=none | ${sha} | y`,
           name: 'Lab Gate'
         }
       },
@@ -397,10 +401,88 @@ describe('dispatch-and-wait', () => {
     const pem = generatePem();
     const shaA = '2'.repeat(40);
     const shaB = '3'.repeat(40);
-    assert.equal(lab.runMatchesShaSuite({ display_title: `Lab Gate | pr | ${shaA} | c` }, shaB, 'pr'), false);
-    assert.equal(lab.runMatchesShaSuite({ display_title: `Lab Gate | pr | ${shaA} | c` }, shaA, 'pr'), true);
-    assert.equal(lab.runMatchesShaSuite({ display_title: `Lab Gate | full | ${shaA} | c` }, shaA, 'pr'), false);
+    assert.equal(
+      lab.runMatchesShaSuite({ display_title: `Lab Gate | pr | veracode=none | ${shaA} | c` }, shaB, 'pr'),
+      false
+    );
+    assert.equal(
+      lab.runMatchesShaSuite({ display_title: `Lab Gate | pr | veracode=none | ${shaA} | c` }, shaA, 'pr'),
+      true
+    );
+    assert.equal(
+      lab.runMatchesShaSuite({ display_title: `Lab Gate | full | veracode=none | ${shaA} | c` }, shaA, 'pr'),
+      false
+    );
     void pem;
+  });
+
+  it('dedupe does not reuse different veracode profile for same SHA + suite', async () => {
+    const pem = generatePem();
+    const sha = 'a'.repeat(40);
+    const titleRep = `Lab Gate | full | veracode=representative | ${sha} | main-gate`;
+    assert.equal(lab.runMatchesShaSuite({ display_title: titleRep }, sha, 'full', 'full'), false);
+    assert.equal(lab.runMatchesShaSuite({ display_title: titleRep }, sha, 'full', 'representative'), true);
+
+    const fetchImpl = mockFetch([
+      {
+        match: (u, i) => u.includes('/access_tokens') && i.method === 'POST',
+        json: { token: 'ghs_token' }
+      },
+      {
+        match: (u, i) => (i.method || 'GET') === 'GET' && u.includes('/actions/runs?event=workflow_dispatch'),
+        json: {
+          workflow_runs: [
+            {
+              id: 777,
+              status: 'in_progress',
+              conclusion: null,
+              created_at: new Date().toISOString(),
+              display_title: titleRep,
+              name: 'Lab Gate',
+              html_url: 'https://example/777'
+            }
+          ]
+        }
+      },
+      {
+        match: (u, i) => u.includes('/dispatches') && i.method === 'POST',
+        status: 200,
+        json: { workflow_run_id: 888 }
+      },
+      {
+        match: (u) => u.endsWith('/actions/runs/888'),
+        json: {
+          id: 888,
+          status: 'completed',
+          conclusion: 'success',
+          html_url: 'https://example/888',
+          display_title: `Lab Gate | full | veracode=full | ${sha} | release-cert`,
+          name: 'Lab Gate'
+        }
+      },
+      {
+        match: (u) => u.includes('/actions/runs/888/jobs'),
+        json: { jobs: [] }
+      }
+    ]);
+
+    const code = await lab.main(
+      {
+        LAB_GITHUB_APP_ID: '1',
+        LAB_GITHUB_APP_PRIVATE_KEY: pem,
+        LAB_GITHUB_APP_INSTALLATION_ID: '9',
+        SOURCE_SHA: sha,
+        SUITE: 'full',
+        VERACODE_PROFILE: 'full',
+        CORRELATION_ID: 'release-cert',
+        POLL_INTERVAL_MS: '1',
+        TIMEOUT_MS: '5000'
+      },
+      { fetchImpl, sleep: async () => {} }
+    );
+    assert.equal(code, 0);
+    assert.ok(fetchImpl.calls.some((c) => c.includes('/dispatches')));
+    assert.ok(fetchImpl.calls.some((c) => c.includes('/actions/runs/888')));
   });
 
   it('fallback correlation lookup when no workflow_run_id', async () => {

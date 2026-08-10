@@ -255,26 +255,31 @@ export async function dispatchWorkflow({
 }
 
 /**
- * Match Lab Gate run-name / display_title for SHA + suite dedupe.
- * Lab run-name: Lab Gate | ${suite} | ${source_sha} | ${correlation_id}
+ * Match Lab Gate run-name / display_title for SHA + suite + veracode_profile dedupe.
+ * Lab run-name: Lab Gate | ${suite} | veracode=${profile} | ${source_sha} | ${correlation_id}
+ *
+ * Must include veracode profile — otherwise Release Certification (full) would reuse
+ * Product Main Gate (representative) for the same SHA and falsely certify Veracode full.
  *
  * @param {object} run
  * @param {string} sourceSha
  * @param {string} suite
+ * @param {string} [veracodeProfile='none']
  * @returns {boolean}
  */
-export function runMatchesShaSuite(run, sourceSha, suite) {
+export function runMatchesShaSuite(run, sourceSha, suite, veracodeProfile = 'none') {
   const sha = String(sourceSha || '');
   const s = String(suite || '');
+  const profile = String(veracodeProfile || 'none');
   if (!sha || !s) return false;
   const title = `${run.display_title || ''} ${run.name || ''}`;
-  // Require both suite token and full sha in the title (run-name format).
   const suiteMarker = `| ${s} |`;
-  return title.includes(suiteMarker) && title.includes(sha);
+  const veracodeMarker = `| veracode=${profile} |`;
+  return title.includes(suiteMarker) && title.includes(veracodeMarker) && title.includes(sha);
 }
 
 /**
- * Find an existing Lab Gate run for the same repository + exact SHA + suite.
+ * Find an existing Lab Gate run for the same repository + exact SHA + suite + veracode profile.
  * Feature-push HEAD and PR merge SHA must not match across events — no cross-dedupe.
  * Prefer in-flight (queued/in_progress), else successful completed.
  * Failure/cancelled are NOT reused (allow redispatch).
@@ -289,6 +294,7 @@ export async function findExistingLabRun({
   repo,
   sourceSha,
   suite,
+  veracodeProfile = 'none',
   fetchImpl = globalThis.fetch,
   log = console
 }) {
@@ -317,7 +323,7 @@ export async function findExistingLabRun({
   }
   const body = await res.json();
   const runs = Array.isArray(body.workflow_runs) ? body.workflow_runs : [];
-  const matches = runs.filter((r) => runMatchesShaSuite(r, sourceSha, suite));
+  const matches = runs.filter((r) => runMatchesShaSuite(r, sourceSha, suite, veracodeProfile));
   if (matches.length === 0) return null;
 
   matches.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -637,7 +643,12 @@ export async function main(env = process.env, deps = {}) {
   });
 
   const sourceSha = sourceInputs.source_sha;
-  const dedupeLabel = labDedupeKey(sourceInputs.source_repository || `${owner}-action`, sourceSha, suite);
+  const dedupeLabel = labDedupeKey(
+    sourceInputs.source_repository || `${owner}-action`,
+    sourceSha,
+    suite,
+    veracodeProfile
+  );
   let dedupeMode = 'dispatched';
   let runId = null;
 
@@ -648,6 +659,7 @@ export async function main(env = process.env, deps = {}) {
     repo,
     sourceSha,
     suite,
+    veracodeProfile,
     fetchImpl,
     log
   });
